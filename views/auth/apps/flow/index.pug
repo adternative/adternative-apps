@@ -1,0 +1,25 @@
+extends ../../layout
+
+
+block page
+  div(class="mb-8")
+    h2(class="text-2xl font-bold text-gray-900") FLOW
+    p(class="text-gray-600") Workflow automation and process management
+
+  div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6")
+    div(class="bg-white rounded-lg shadow-sm border border-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-4") Workflows
+      p(class="text-gray-600 mb-4") Create and manage automated workflows
+      a(href="/flow/workflows" class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500")
+        i(data-lucide="workflow" class="w-4 h-4 mr-2")
+        | Manage Workflows
+
+    div(class="bg-white rounded-lg shadow-sm border border-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-4") Templates
+      p(class="text-gray-600 mb-4") Use pre-built workflow templates
+      div(class="text-sm text-gray-500") Coming soon...
+
+    div(class="bg-white rounded-lg shadow-sm border border-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-4") Analytics
+      p(class="text-gray-600 mb-4") Track workflow performance
+      div(class="text-sm text-gray-500") Coming soon...

@@ -1,0 +1,72 @@
+extends layout
+
+block page
+  // Header
+  div(class="mb-8")
+    h2(class="text-2xl font-bold text-gray-900") Dashboard
+    p(class="text-gray-600") Manage your entities and social media presence
+
+  // Entity Management Section
+  div(class="grid grid-cols-1 lg:grid-cols-3 gap-6")
+    // Entity List
+    div(class="lg:col-span-2")
+      div(class="bg-purple-950 rounded-lg shadow-sm border border-gray-200 p-6")
+        div(class="flex justify-between items-center mb-4")
+          h3(class="text-lg font-medium text-gray-900") Your Entities
+          button(id="createEntityBtn" class="inline-flex items-center justify-center rounded-full bg-teal-400 text-sm shadow-md text-purple-950 py-1.5 px-3 hover:shadow-none hover:bg-transparent hover:text-teal-400 border-teal-400 border-2")
+            i(data-lucide="plus" class="w-4 h-4 mr-2")
+            | Add Entity
+        div(id="entitiesList" class="space-y-3")
+          // Entities will be loaded here via JavaScript
+
+    // Current Entity Info
+    div(class="lg:col-span-1")
+      div(class="bg-purple-950 rounded-lg shadow-sm border border-gray-200 p-6")
+        h3(class="text-lg font-medium text-gray-900 mb-4") Current Entity
+        div(id="currentEntityInfo" class="text-center py-8")
+          i(data-lucide="building" class="w-12 h-12 text-gray-400 mx-auto mb-4")
+          p(class="text-gray-500") No entity selected
+
+  // Quick Actions
+  div(class="mt-8")
+    div(class="bg-purple-950 rounded-lg shadow-sm border border-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-4") Quick Actions
+      div(class="grid grid-cols-1 md:grid-cols-3 gap-4")
+        button(class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500")
+          i(data-lucide="instagram" class="w-5 h-5 mr-2")
+          | Instagram
+        button(class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500")
+          i(data-lucide="facebook" class="w-5 h-5 mr-2")
+          | Facebook
+        button(class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500")
+          i(data-lucide="search" class="w-5 h-5 mr-2")
+          | Google Search Console
+
+  // Create Entity Modal
+  div(id="createEntityModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden")
+    div(class="flex items-center justify-center min-h-screen p-4")
+      div(class="bg-white rounded-lg shadow-xl max-w-md w-full")
+        div(class="p-6")
+          div(class="flex justify-between items-center mb-4")
+            h3(class="text-lg font-medium text-gray-900") Create New Entity
+            button(id="closeModalBtn" class="inline-flex items-center justify-center text-gray-400 hover:text-gray-600")
+              i(data-lucide="x" class="w-5 h-5")
+          form(id="createEntityForm")
+            div(class="space-y-4")
+              div
+                label(for="entityName" class="block text-sm font-medium text-gray-700 mb-2") Entity Name
+                input(type="text" id="entityName" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required)
+              div
+                label(for="entityIndustry" class="block text-sm font-medium text-gray-700 mb-2") Industry
+                input(type="text" id="entityIndustry" name="industry" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required)
+              div
+                label(for="entityDescription" class="block text-sm font-medium text-gray-700 mb-2") Description (Optional)
+                textarea(id="entityDescription" name="description" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3")
+              div
+                label(for="entityWebsite" class="block text-sm font-medium text-gray-700 mb-2") Website (Optional)
+                input(type="url" id="entityWebsite" name="website" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent")
+            div(class="flex justify-end space-x-3 mt-6")
+              button(type="button" id="cancelEntityBtn" class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500") Cancel
+              button(type="submit" class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500") Create Entity
+
+  script(src="/javascripts/dashboard.js")

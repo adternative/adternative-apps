@@ -1,0 +1,25 @@
+extends ../../layout
+
+
+block page
+  div(class="mb-8")
+    h2(class="text-2xl font-bold text-gray-900") ECHO
+    p(class="text-gray-600") Monitoring and alerting system
+
+  div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6")
+    div(class="bg-white rounded-lg shadow-sm border border-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-4") Monitoring
+      p(class="text-gray-600 mb-4") Real-time system monitoring
+      a(href="/echo/monitoring" class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500")
+        i(data-lucide="activity" class="w-4 h-4 mr-2")
+        | View Monitoring
+
+    div(class="bg-white rounded-lg shadow-sm border border-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-4") Alerts
+      p(class="text-gray-600 mb-4") Configure alert notifications
+      div(class="text-sm text-gray-500") Coming soon...
+
+    div(class="bg-white rounded-lg shadow-sm border border-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-4") Reports
+      p(class="text-gray-600 mb-4") Generate monitoring reports
+      div(class="text-sm text-gray-500") Coming soon...

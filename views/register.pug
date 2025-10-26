@@ -1,0 +1,37 @@
+extends layout
+
+block content
+  div(class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8")
+    div(class="max-w-md w-full space-y-8")
+      div
+        div(class="text-center")
+          h1(class="text-3xl font-bold text-gray-900") ADTERNATIVE
+          h2(class="mt-6 text-2xl font-bold text-gray-900") Create your account
+          p(class="mt-2 text-sm text-gray-600") Get started with managing your brands and social media presence.
+        form(id="registerForm" class="mt-8 space-y-6")
+          div(class="space-y-4")
+            div(class="grid grid-cols-2 gap-4")
+              div
+                label(for="firstName" class="block text-sm font-medium text-gray-700 mb-2") First Name
+                input(id="firstName" name="firstName" type="text" autocomplete="given-name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="John")
+              div
+                label(for="lastName" class="block text-sm font-medium text-gray-700 mb-2") Last Name
+                input(id="lastName" name="lastName" type="text" autocomplete="family-name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Doe")
+            div
+              label(for="email" class="block text-sm font-medium text-gray-700 mb-2") Email address
+              input(id="email" name="email" type="email" autocomplete="email" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="john@example.com")
+            div
+              label(for="password" class="block text-sm font-medium text-gray-700 mb-2") Password
+              input(id="password" name="password" type="password" autocomplete="new-password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Create a strong password")
+            div
+              label(for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-2") Confirm Password
+              input(id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Confirm your password")
+          div
+            button(type="submit" class="inline-flex items-center justify-center rounded-full bg-purple-950 shadow-purple-950 shadow-md text-white w-full py-3 px-4 hover:shadow-none hover:bg-transparent hover:text-purple-950 border-purple-950 border-2")
+              | Create account
+          div(class="text-center")
+            p(class="text-sm text-gray-600") Already have an account?
+              a(href="/login" class="text-teal-400 hover:text-white ml-1") Sign in
+          div(id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm")
+
+  script(src="/javascripts/auth.js")

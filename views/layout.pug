@@ -1,0 +1,59 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title= title
+    link(rel='stylesheet', href='/stylesheets/dist.css')
+    script(src="https://unpkg.com/lucide@latest/dist/umd/lucide.js")
+  body(class="h-screen bg-purple-950 flex flex-col")
+    // Top navbar - always visible
+    nav(class="fixed top-0 left-0 right-0 z-50 bg-zinc-900/80 shadow-lg backdrop-blur-lg px-6 py-3 mb-0")
+      div(class="flex justify-between items-center")
+        div(class="flex items-center space-x-4")
+          // Mobile menu button (only show for authenticated users)
+          if user
+            button(id="mobileMenuBtn" class="lg:hidden text-gray-500 hover:text-gray-700")
+              i(data-lucide="menu" class="w-6 h-6")
+          
+          
+            div(class="relative")
+              input(type="text" placeholder="Search..." class="block w-full rounded-none bg-transparent border-b-2 border-teal-400 px-3 py-1.5 text-base text-teal-400 outline-none placeholder:text-teal-400 focus:outline-none focus:border-teal-400 sm:text-sm/6")
+        
+        div(class="flex items-center space-x-4")
+          if user
+            // User dropdown menu
+            div(class="relative")
+              button(id="userDropdownBtn" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-purple-900 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500")
+                // User avatar
+                div(class="w-8 h-8 bg-teal-400 rounded-full flex items-center justify-center text-white font-semibold text-sm p-3" )
+                  = user.name ? user.name.charAt(0).toUpperCase() : 'U'
+                // User name
+                span(class="text-sm font-medium text-teal-400")= user.name || 'User'
+                // Dropdown arrow
+                i(data-lucide="chevron-down" class="w-4 h-4 text-teal-400")
+              
+              // Dropdown menu
+              div(id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 hidden")
+                a(href="/settings" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200")
+                  i(data-lucide="settings" class="w-4 h-4 mr-3 text-gray-400")
+                  | Settings
+                a(href="/billing" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200")
+                  i(data-lucide="credit-card" class="w-4 h-4 mr-3 text-gray-400")
+                  | Billing
+                hr(class="my-1 border-gray-200")
+                button(id="logoutBtn" class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200")
+                  i(data-lucide="log-out" class="w-4 h-4 mr-3")
+                  | Logout
+          else
+            // Login/Register buttons for unauthenticated users
+            a(href="/login" class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500") Login
+            a(href="/register" class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500") Register
+
+    // Main content area
+    main(class="flex-1 h-full pt-24")
+      block content
+
+    script(src="/javascripts/app.js")
+    script.
+      lucide.createIcons();

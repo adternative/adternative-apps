@@ -1,0 +1,11 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/adternat/ADTERNATIVE/apps"
+PassengerBaseURI "/"
+PassengerNodejs "/home/adternat/nodevenv/ADTERNATIVE/apps/18/bin/node"
+PassengerAppType node
+PassengerStartupFile /home/adternat/ADTERNATIVE/apps/bin/www
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
+<IfModule Litespeed>
+</IfModule>
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END
