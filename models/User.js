@@ -23,14 +23,14 @@ const User = sequelize.define('User', {
       len: [6, 255]
     }
   },
-  firstName: {
+  first_name: {
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
       len: [1, 50]
     }
   },
-  lastName: {
+  last_name: {
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
@@ -42,14 +42,15 @@ const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: 'user'
   },
-  isActive: {
+  is_active: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   },
-  lastLogin: {
+  last_login: {
     type: DataTypes.DATE
   }
 }, {
+  tableName: 'users',
   hooks: {
     beforeCreate: async (user) => {
       if (user.password) {
@@ -80,7 +81,7 @@ User.prototype.validatePassword = async function(password) {
 };
 
 User.prototype.getFullName = function() {
-  return `${this.firstName} ${this.lastName}`;
+  return `${this.first_name} ${this.last_name}`;
 };
 
 module.exports = User;

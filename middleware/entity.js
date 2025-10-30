@@ -17,8 +17,8 @@ const currentEntity = async (req, res, next) => {
     if (!entityId) {
       const firstEntity = await Entity.findOne({
         where: {
-          userId: req.user.id,
-          isActive: true
+          user_id: req.user.id,
+          is_active: true
         },
         order: [['createdAt', 'ASC']]
       });
@@ -34,8 +34,8 @@ const currentEntity = async (req, res, next) => {
       const entity = await Entity.findOne({
         where: {
           id: entityId,
-          userId: req.user.id,
-          isActive: true
+          user_id: req.user.id,
+          is_active: true
         }
       });
 
@@ -82,7 +82,7 @@ const requireCurrentEntity = async (req, res, next) => {
 };
 
 // Middleware to get user's entities
-const getUserEntities = async (req, res, next) => {
+  const getUserEntities = async (req, res, next) => {
   try {
     if (!req.user) {
       return res.status(401).json({ 
@@ -93,8 +93,8 @@ const getUserEntities = async (req, res, next) => {
 
     const entities = await Entity.findAll({
       where: {
-        userId: req.user.id,
-        isActive: true
+        user_id: req.user.id,
+        is_active: true
       },
       order: [['name', 'ASC']]
     });
@@ -111,7 +111,7 @@ const getUserEntities = async (req, res, next) => {
 };
 
 // Helper function to switch current entity
-const switchEntity = async (req, res, next) => {
+  const switchEntity = async (req, res, next) => {
   try {
     const { entityId } = req.body;
 
@@ -126,8 +126,8 @@ const switchEntity = async (req, res, next) => {
     const entity = await Entity.findOne({
       where: {
         id: entityId,
-        userId: req.user.id,
-        isActive: true
+        user_id: req.user.id,
+        is_active: true
       }
     });
 

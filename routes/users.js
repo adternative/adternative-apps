@@ -19,11 +19,11 @@ router.get('/', requireRole(['admin']), async function(req, res, next) {
       users: users.map(user => ({
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name,
+        lastName: user.last_name,
         role: user.role,
-        isActive: user.isActive,
-        lastLogin: user.lastLogin,
+        isActive: user.is_active,
+        lastLogin: user.last_login,
         createdAt: user.createdAt,
         fullName: user.getFullName()
       }))
@@ -46,7 +46,7 @@ router.get('/:userId', requireRole(['admin']), async function(req, res, next) {
       attributes: { exclude: ['password'] },
       include: [{
         association: 'entities',
-        where: { isActive: true },
+        where: { is_active: true },
         required: false
       }]
     });
@@ -63,11 +63,11 @@ router.get('/:userId', requireRole(['admin']), async function(req, res, next) {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name,
+        lastName: user.last_name,
         role: user.role,
-        isActive: user.isActive,
-        lastLogin: user.lastLogin,
+        isActive: user.is_active,
+        lastLogin: user.last_login,
         createdAt: user.createdAt,
         fullName: user.getFullName(),
         entities: user.entities || []
@@ -112,8 +112,8 @@ router.put('/:userId/role', requireRole(['admin']), async function(req, res, nex
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name,
+        lastName: user.last_name,
         role: user.role,
         fullName: user.getFullName()
       }
@@ -141,18 +141,18 @@ router.put('/:userId/toggle-status', requireRole(['admin']), async function(req,
       });
     }
 
-    await user.update({ isActive: !user.isActive });
+    await user.update({ is_active: !user.is_active });
 
     res.json({
       success: true,
-      message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
+      message: `User ${user.is_active ? 'activated' : 'deactivated'} successfully`,
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name,
+        lastName: user.last_name,
         role: user.role,
-        isActive: user.isActive,
+        isActive: user.is_active,
         fullName: user.getFullName()
       }
     });

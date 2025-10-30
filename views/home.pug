@@ -1,0 +1,62 @@
+extends layout
+
+block content
+  // Header
+  div(class="mb-8")
+    h2(class="text-2xl font-bold text-gray-900") Overview
+    p(class="text-gray-600") Manage your entities and social media presence
+
+  // Entity Management Section
+  div(class="grid grid-cols-1 lg:grid-cols-3 gap-6")
+    // Entity List
+    div(class="lg:col-span-2")
+      div(class="bg-purple-950 rounded-lg shadow-sm border border-gray-200 p-6")
+        div(class="flex justify-between items-center mb-4")
+          h3(class="text-lg font-medium text-gray-900") Your Entities
+          button(id="createEntityBtn" class="inline-flex items-center justify-center rounded-full bg-teal-400 text-sm shadow-md text-purple-950 py-1.5 px-3 hover:shadow-none hover:bg-transparent hover:text-teal-400 border-teal-400 border-2")
+            i(data-lucide="plus" class="w-4 h-4 mr-2")
+            | Add Entity
+        div(id="entitiesList" class="space-y-3")
+          // Entities will be loaded here via JavaScript
+
+    // Current Entity Info
+    div(class="lg:col-span-1")
+      div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6")
+        h3(class="text-lg font-medium text-gray-900 mb-4") Connected Social Accounts
+        div(class="mt-4 py-4 border-b border-t border-gray-200")
+          div(class="grid grid-cols-3 gap-2 place-items-start")
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full px-3 py-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 text-sm" data-platform="instagram")
+              i(data-lucide="instagram" class="w-4 h-4 mr-2")
+              | Instagram
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm" data-platform="facebook")
+              i(data-lucide="facebook" class="w-4 h-4 mr-2")
+              | Facebook
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full px-3 py-2 rounded-lg bg-sky-700 text-white hover:bg-sky-800 text-sm" data-platform="linkedin")
+              i(data-lucide="linkedin" class="w-4 h-4 mr-2")
+              | LinkedIn
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full px-3 py-2 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 text-sm" data-platform="tiktok")
+              i(data-lucide="music-2" class="w-4 h-4 mr-2")
+              | TikTok
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full px-3 py-2 rounded-lg bg-neutral-900 text-white hover:bg-neutral-800 text-sm" data-platform="twitter")
+              i(data-lucide="twitter" class="w-4 h-4 mr-2")
+              | Twitter (X)
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm" data-platform="youtube")
+              i(data-lucide="youtube" class="w-4 h-4 mr-2")
+              | YouTube
+
+  // Quick Actions
+  div(class="mt-8")
+    div(class="bg-purple-950 rounded-lg shadow-sm border border-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-4") Quick Actions
+      div(class="grid grid-cols-1 md:grid-cols-3 gap-4")
+        button(class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500")
+          i(data-lucide="instagram" class="w-5 h-5 mr-2")
+          | Instagram
+        button(class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500")
+          i(data-lucide="facebook" class="w-5 h-5 mr-2")
+          | Facebook
+        button(class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500")
+          i(data-lucide="search" class="w-5 h-5 mr-2")
+          | Google Search Console
+
+  script(src="/javascripts/dashboard.js")

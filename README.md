@@ -9,6 +9,7 @@ A comprehensive ExpressJS application with user authentication, entity managemen
 - **Modern UI**: TailwindCSS with Space Grotesk font and Lucide icons
 - **Database**: MySQL with Sequelize ORM
 - **Middleware**: Authentication and entity selection middleware
+- **Module Subscriptions**: Entity-level module paywall with monthly and yearly plans per module
 - **Social Media Integration**: Ready for social media platform connections
 - **Google Search Console**: Integration support for Google Search Console
 
@@ -86,6 +87,10 @@ This will watch for changes in your CSS files and rebuild automatically.
 - `POST /entities` - Create new entity (requires auth)
 - `GET /entities/current` - Get current entity (requires auth)
 - `POST /entities/switch` - Switch current entity (requires auth)
+- `GET /entities/:entityId/subscriptions` - List module subscriptions and available plans (requires auth)
+- `POST /entities/:entityId/subscriptions` - Activate a module subscription (requires auth)
+- `PATCH /entities/:entityId/subscriptions/:subscriptionId` - Update an existing subscription (requires auth)
+- `POST /entities/:entityId/subscriptions/:subscriptionId/cancel` - Cancel a subscription (requires auth)
 - `GET /entities/:entityId` - Get specific entity (requires auth)
 - `PUT /entities/:entityId` - Update entity (requires auth)
 - `DELETE /entities/:entityId` - Delete entity (requires auth)
@@ -95,6 +100,14 @@ This will watch for changes in your CSS files and rebuild automatically.
 - `GET /users/:userId` - Get specific user (admin only)
 - `PUT /users/:userId/role` - Update user role (admin only)
 - `PUT /users/:userId/toggle-status` - Toggle user status (admin only)
+
+## Billing & Subscriptions
+
+- Each entity can purchase access to individual modules on a monthly or yearly cadence.
+ - Module pricing and descriptions live in each module's `config.json` (for example, `modules/core/config.json`). Global defaults such as currency and grace periods remain in `config/subscriptionPlans.js`.
+- Active subscriptions are enforced by the paywall middleware before module routes are executed.
+- A configurable grace window (`gracePeriodDays`) allows short-term access after period end before locking the module.
+- Use the Entity subscription API endpoints to provision, upgrade, or cancel module access programmatically.
 
 ## Database Schema
 
@@ -123,6 +136,20 @@ This will watch for changes in your CSS files and rebuild automatically.
 - `userId` (UUID, Foreign Key)
 - `createdAt` (DateTime)
 - `updatedAt` (DateTime)
+
+### Module Subscriptions Table
+- `id` (UUID, Primary Key)
+- `entityId` (UUID, Foreign Key to Entities)
+- `moduleKey` (String, lower-case module identifier)
+- `planInterval` (Enum: monthly, yearly)
+- `status` (Enum: active, trialing, past_due, canceled, expired)
+- `priceAmount` (Integer, stored in cents)
+- `priceCurrency` (String, ISO currency code)
+- `currentPeriodStart` (DateTime)
+- `currentPeriodEnd` (DateTime)
+- `cancelAtPeriodEnd` (Boolean)
+- `canceledAt` (DateTime, nullable)
+- `metadata` (JSON, optional)
 
 ## User Roles
 

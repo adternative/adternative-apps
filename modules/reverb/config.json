@@ -1,0 +1,14 @@
+{
+    "name": "REVERB",
+    "icon": "audio-waveform",
+    "pricing": {
+        "monthly": {
+            "amount": 10900,
+            "currency": "USD"
+        },
+        "yearly": {
+            "amount": 109000,
+            "currency": "USD"
+        }
+    }
+}

@@ -1,9 +1,9 @@
 const { authenticateToken } = require('./auth');
 
-// Global authentication middleware - redirects unauthenticated users to home
+// Global authentication middleware - redirects unauthenticated users to login
 const requireAuth = (req, res, next) => {
   // Skip auth for public routes
-  const publicRoutes = ['/', '/login', '/register'];
+  const publicRoutes = ['/login', '/register'];
   if (publicRoutes.includes(req.path)) {
     return next();
   }
@@ -22,9 +22,9 @@ const requireAuth = (req, res, next) => {
     return authenticateToken(req, res, next);
   }
 
-  // Redirect to home if not authenticated
+  // Redirect to login if not authenticated
   if (req.headers.accept && req.headers.accept.includes('text/html')) {
-    return res.redirect('/');
+    return res.redirect('/login');
   }
 
   // Return JSON error for API requests

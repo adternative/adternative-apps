@@ -1,0 +1,15 @@
+{
+    "name": "CORE",
+    "icon": "circle-dot-dashed",
+    "description": "Core module for the management of the application",
+    "pricing": {
+        "monthly": {
+            "amount": 12900,
+            "currency": "USD"
+        },
+        "yearly": {
+            "amount": 129000,
+            "currency": "USD"
+        }
+    }
+}

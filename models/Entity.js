@@ -21,6 +21,10 @@ const Entity = sequelize.define('Entity', {
       len: [1, 50]
     }
   },
+  logo: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   description: {
     type: DataTypes.TEXT,
     allowNull: true
@@ -32,29 +36,17 @@ const Entity = sequelize.define('Entity', {
       isUrl: true
     }
   },
-  isActive: {
+  user_id: {
+    type: DataTypes.UUID,
+    allowNull: false
+  },
+  is_active: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   },
-  // Social media platform connections
-  socialMediaPlatforms: {
-    type: DataTypes.JSON,
-    defaultValue: {},
-    comment: 'Object containing connected social media platforms and their IDs'
-  },
-  // Google Search Console connection
-  googleSearchConsole: {
-    type: DataTypes.JSON,
-    defaultValue: {},
-    comment: 'Object containing Google Search Console configuration'
-  },
-  // Additional integrations
-  integrations: {
-    type: DataTypes.JSON,
-    defaultValue: {},
-    comment: 'Object containing other platform integrations'
-  }
+
 }, {
+  tableName: 'entities',
   indexes: [
     {
       fields: ['name']
@@ -63,7 +55,7 @@ const Entity = sequelize.define('Entity', {
       fields: ['industry']
     },
     {
-      fields: ['isActive']
+      fields: ['is_active']
     }
   ]
 });

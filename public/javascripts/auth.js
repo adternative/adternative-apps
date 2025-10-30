@@ -45,7 +45,7 @@ class Auth {
       if (response.ok) {
         // Store token and redirect to dashboard
         localStorage.setItem('authToken', data.token);
-        window.location.href = '/dashboard';
+        window.location.href = '/';
       } else {
         this.showError(data.error || 'Login failed');
       }
@@ -69,8 +69,8 @@ class Auth {
     const registerData = {
       email: formData.get('email'),
       password: password,
-      firstName: formData.get('firstName'),
-      lastName: formData.get('lastName')
+      first_name: formData.get('first_name'),
+      last_name: formData.get('last_name')
     };
 
     try {
@@ -87,7 +87,7 @@ class Auth {
       if (response.ok) {
         // Store token and redirect to dashboard
         localStorage.setItem('authToken', data.token);
-        window.location.href = '/dashboard';
+        window.location.href = '/';
       } else {
         this.showError(data.error || 'Registration failed');
       }

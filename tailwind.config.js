@@ -2,6 +2,9 @@
 module.exports = {
   content: [
     "./views/**/*.pug",
+    "./views/*.pug",
+    "./modules/**/*.pug",
+    "./modules/**/*.js",
     "./public/javascripts/**/*.js",
     "./routes/**/*.js",
     "./middleware/**/*.js"

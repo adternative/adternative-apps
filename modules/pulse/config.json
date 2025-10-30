@@ -1,0 +1,33 @@
+{
+    "name":"PULSE",
+    "icon":"activity",
+    "description":"PULSE is a platform for creating and managing your social media presence.",
+    "pricing":{
+        "monthly":{
+            "amount":19900,
+            "currency":"USD"
+        },
+        "yearly":{
+            "amount":199000,
+            "currency":"USD"
+        }
+    },
+    "links":[
+        {
+            "name":"Templates",
+            "url":"/templates"
+        },
+        {
+            "name":"Campaigns",
+            "url":"/campaigns"
+        },
+        {
+            "name":"Audiences",
+            "url":"/audiences"
+        },
+        {
+            "name":"Subscribers",
+            "url":"/subscribers"
+        }
+    ]
+}

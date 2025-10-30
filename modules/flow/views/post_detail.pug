@@ -1,0 +1,70 @@
+extends ../../../views/layout
+
+block content
+  a(href="/flow/posts" class="text-sm text-gray-500 hover:text-gray-700") ← Back to Posts
+  h2(class="mt-2 text-2xl font-bold text-gray-900")= post.title || 'Post'
+  div(class="text-sm text-gray-500 mb-6")
+    span(class=`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${post.status==='published'?'bg-green-100 text-green-700':post.status==='scheduled'?'bg-yellow-100 text-yellow-700':post.status==='failed'?'bg-red-100 text-red-700':'bg-gray-100 text-gray-700'}`) #{post.status}
+
+  // Content preview
+  div(class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6")
+    h3(class="text-lg font-medium text-gray-900 mb-2") Content
+    if post.body
+      p(class="text-gray-800 whitespace-pre-line")= post.body
+    else
+      p(class="text-gray-500") No content
+
+  // Workflow visualization (n8n-like)
+  div(class="bg-white rounded-xl shadow-sm border border-gray-200 p-6")
+    h3(class="text-lg font-medium text-gray-900 mb-4") Share Workflow
+    style.
+      .flow-canvas{position:relative;width:100%;height:360px;background:linear-gradient(90deg,#fafafa 1px,transparent 1px),linear-gradient(#fafafa 1px,transparent 1px);background-size:24px 24px;border-radius:12px;border:1px solid #e5e7eb}
+      .flow-node{position:absolute;min-width:180px;max-width:220px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.06);padding:12px}
+      .flow-node .title{font-weight:600;color:#111827}
+      .flow-node .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;font-size:12px;margin-top:6px}
+      .flow-node .badge.gray{background:#f3f4f6;color:#374151}
+      .flow-node .badge.green{background:#dcfce7;color:#166534}
+      .flow-node .badge.yellow{background:#fef9c3;color:#854d0e}
+      .flow-node .badge.red{background:#fee2e2;color:#991b1b}
+      .flow-svg{position:absolute;inset:0}
+    .flow-canvas#flowCanvas
+      svg.flow-svg(xmlns="http://www.w3.org/2000/svg")
+    script.
+      (function(){
+        const nodes = !{JSON.stringify(nodes || [])};
+        const edges = !{JSON.stringify(edges || [])};
+        const container = document.getElementById('flowCanvas');
+        const svg = container.querySelector('svg');
+        const W = container.clientWidth; const H = container.clientHeight;
+        svg.setAttribute('width', W); svg.setAttribute('height', H);
+        // layout: source on left, shares on right stacked
+        const srcX = 40, srcY = H/2 - 40;
+        const spacingY = 90; const destX = Math.min(W - 260, 420);
+        function badgeClass(status){
+          if(status==='published' || status==='running') return 'badge green';
+          if(status==='scheduled' || status==='pending') return 'badge yellow';
+          if(status==='failed') return 'badge red';
+          return 'badge gray';
+        }
+        // Source node
+        const src = document.createElement('div'); src.className='flow-node'; src.style.left=srcX+'px'; src.style.top=srcY+'px';
+        src.innerHTML = '<div class="title">Content</div><div class="'+badgeClass(!#{JSON.stringify(post.status)})+'">'+!#{JSON.stringify(post.status)}+'</div>';
+        container.appendChild(src);
+        // Dest nodes
+        const dests = nodes.filter(n=>n.type==='share');
+        dests.forEach((n, i)=>{
+          const y = (H/2 - (dests.length-1)*spacingY/2) + i*spacingY;
+          const el = document.createElement('div'); el.className='flow-node'; el.style.left=destX+'px'; el.style.top=(y)+'px';
+          el.innerHTML = '<div class="title">'+(n.label||'Destination')+'</div><div class="'+badgeClass(n.status)+'">'+(n.status||'')+'</div>';
+          container.appendChild(el);
+          // Edge (cubic bezier)
+          const x1 = srcX + 180, y1 = srcY + 30; const x2 = destX, y2 = y + 30;
+          const cx1 = x1 + 80; const cx2 = x2 - 80;
+          const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+          path.setAttribute('d', `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`);
+          path.setAttribute('fill','none'); path.setAttribute('stroke','#94a3b8'); path.setAttribute('stroke-width','2');
+          svg.appendChild(path);
+        });
+      })();
+
+

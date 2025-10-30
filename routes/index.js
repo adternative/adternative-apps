@@ -1,62 +1,48 @@
 var express = require('express');
 var router = express.Router();
 var jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, Entity } = require('../models');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const { getAvailableApps } = require('../utils/appLoader');
+const { withAvailableApps } = require('../middleware/paywall');
 
-/* GET home page. */
-router.get('/', optionalAuth, function(req, res, next) {
-  res.render('index', { 
-    title: 'ADTERNATIVE',
-    user: req.user || null
-  });
-});
-
-/* GET dashboard - requires authentication */
-router.get('/dashboard', authenticateToken, function(req, res, next) {
-  // Check if request expects JSON (API call)
-  if (req.headers.accept && req.headers.accept.includes('application/json')) {
-    return res.json({
-      success: true,
-      user: {
-        id: req.user.id,
-        email: req.user.email,
-        firstName: req.user.firstName,
-        lastName: req.user.lastName,
-        role: req.user.role,
-        fullName: req.user.getFullName()
-      }
-    });
-  }
-  
-  // Render HTML page
-  res.render('auth/dashboard', { 
-    title: 'Dashboard',
+/* GET home page - requires authentication */
+router.get('/', authenticateToken, withAvailableApps, function(req, res, next) {
+  // Render dashboard as the home page
+  res.render('home', { 
+    title: 'Home',
     user: req.user,
-    availableApps: getAvailableApps()
+    availableApps: req.availableApps || getAvailableApps()
   });
 });
-
 
 
 // Render login page
 router.get('/login', (req, res) => {
-  res.render('login', { title: 'Login' });
+  res.render('login', { 
+    title: 'Login',
+    user: null,
+    availableApps: getAvailableApps()
+  });
 });
 
 // Render register page
 router.get('/register', (req, res) => {
-  res.render('register', { title: 'Register' });
+  res.render('register', { 
+    title: 'Register',
+    user: null,
+    availableApps: getAvailableApps()
+  });
 });
 
 // Register new user
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, firstName, lastName, role = 'user' } = req.body;
+    const { email, password, first_name, last_name } = req.body;
+    const role = 'user';
 
     // Validate required fields
-    if (!email || !password || !firstName || !lastName) {
+    if (!email || !password || !first_name || !last_name) {
       return res.status(400).json({
         error: 'All fields are required',
         code: 'MISSING_FIELDS'
@@ -76,8 +62,8 @@ router.post('/register', async (req, res) => {
     const user = await User.create({
       email,
       password,
-      firstName,
-      lastName,
+      first_name,
+      last_name,
       role
     });
 
@@ -97,8 +83,8 @@ router.post('/register', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        first_name: user.first_name,
+        last_name: user.last_name,
         role: user.role,
         fullName: user.getFullName()
       },
@@ -128,7 +114,7 @@ router.post('/login', async (req, res) => {
     // Find user with password scope
     const user = await User.scope('withPassword').findOne({ where: { email } });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.is_active) {
       return res.status(401).json({
         error: 'Invalid credentials',
         code: 'INVALID_CREDENTIALS'
@@ -145,7 +131,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Update last login
-    await user.update({ lastLogin: new Date() });
+    await user.update({ last_login: new Date() });
 
     // Generate JWT token
     const token = jwt.sign(
@@ -157,14 +143,25 @@ router.post('/login', async (req, res) => {
     // Store user in session for HTML requests
     req.session.userId = user.id;
 
+    // Preselect most recently created entity if user hasn't picked one
+    if (!req.session.currentEntityId) {
+      const lastEntity = await Entity.findOne({
+        where: { user_id: user.id, is_active: true },
+        order: [['createdAt', 'DESC']]
+      });
+      if (lastEntity) {
+        req.session.currentEntityId = lastEntity.id;
+      }
+    }
+
     res.json({
       success: true,
       message: 'Login successful',
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        first_name: user.first_name,
+        last_name: user.last_name,
         role: user.role,
         fullName: user.getFullName()
       },
@@ -195,8 +192,8 @@ router.get('/profile', authenticateToken, async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        first_name: user.first_name,
+        last_name: user.last_name,
         role: user.role,
         fullName: user.getFullName(),
         entities: user.entities || []
@@ -214,7 +211,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 // Update user profile
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
-    const { firstName, lastName, email } = req.body;
+    const { first_name, last_name, email } = req.body;
     const user = await User.findByPk(req.user.id);
 
     if (!user) {
@@ -236,8 +233,8 @@ router.put('/profile', authenticateToken, async (req, res) => {
     }
 
     await user.update({
-      firstName: firstName || user.firstName,
-      lastName: lastName || user.lastName,
+      first_name: first_name || user.first_name,
+      last_name: last_name || user.last_name,
       email: email || user.email
     });
 
@@ -247,8 +244,8 @@ router.put('/profile', authenticateToken, async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        first_name: user.first_name,
+        last_name: user.last_name,
         role: user.role,
         fullName: user.getFullName()
       }

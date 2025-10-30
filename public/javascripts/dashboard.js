@@ -12,6 +12,7 @@ class Dashboard {
     this.setupEventListeners();
     this.loadEntities();
     this.loadCurrentEntity();
+    this.maybeOpenModalFromQuery();
   }
 
   setupEventListeners() {
@@ -182,6 +183,15 @@ class Dashboard {
   hideCreateEntityModal() {
     document.getElementById('createEntityModal').classList.add('hidden');
     document.getElementById('createEntityForm').reset();
+  }
+
+  maybeOpenModalFromQuery() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('openEntityModal') === '1') {
+      this.showCreateEntityModal();
+      // Clean param from URL without reload
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }
 
   async createEntity() {

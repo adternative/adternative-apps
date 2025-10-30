@@ -5,7 +5,9 @@
   "scripts": {
     "start": "npm run build-css-prod && node ./bin/www",
     "build-css": "tailwindcss -i ./public/stylesheets/style.css -o ./public/stylesheets/dist.css --watch",
-    "build-css-prod": "tailwindcss -i ./public/stylesheets/style.css -o ./public/stylesheets/dist.css --minify"
+    "build-css-prod": "tailwindcss -i ./public/stylesheets/style.css -o ./public/stylesheets/dist.css --minify",
+    "init-db": "node scripts/init-db.js",
+    "reset-db": "node scripts/reset-db.js"
   },
   "dependencies": {
     "axios": "^1.4.0",
@@ -20,6 +22,7 @@
     "lucide": "^0.545.0",
     "morgan": "~1.9.1",
     "mysql2": "^3.3.0",
+    "node-cron": "^4.2.1",
     "passport": "^0.6.0",
     "passport-local": "^1.0.0",
     "pug": "^3.0.2",

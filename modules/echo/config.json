@@ -1,0 +1,14 @@
+{
+    "name": "ECHO",
+    "icon": "waves",
+    "pricing": {
+        "monthly": {
+            "amount": 7900,
+            "currency": "USD"
+        },
+        "yearly": {
+            "amount": 79000,
+            "currency": "USD"
+        }
+    }
+}

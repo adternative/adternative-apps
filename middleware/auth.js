@@ -9,12 +9,12 @@ const authenticateToken = async (req, res, next) => {
     const isHtmlRequest = req.headers.accept && req.headers.accept.includes('text/html');
 
     // Check for session-based authentication first (for HTML requests)
-    if (isHtmlRequest && req.session && req.session.userId) {
+    if (!req.user && isHtmlRequest && req.session && req.session.userId) {
       const user = await User.findByPk(req.session.userId, {
         attributes: { exclude: ['password'] }
       });
 
-      if (user && user.isActive) {
+      if (user && user.is_active) {
         req.user = user;
         return next();
       }
@@ -34,12 +34,12 @@ const authenticateToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Find user and check if still active
-    const user = await User.findByPk(decoded.userId, {
+    // Find user and check if still active (skip if already set)
+    const user = req.user || await User.findByPk(decoded.userId, {
       attributes: { exclude: ['password'] }
     });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.is_active) {
       if (isHtmlRequest) {
         return res.redirect('/login');
       }
@@ -140,7 +140,7 @@ const requireEntityOwnership = async (req, res, next) => {
       where: {
         id: entityId,
         userId: req.user.id,
-        isActive: true
+        is_active: true
       }
     });
 
@@ -174,7 +174,7 @@ const optionalAuth = async (req, res, next) => {
         attributes: { exclude: ['password'] }
       });
 
-      if (user && user.isActive) {
+      if (user && user.is_active) {
         req.user = user;
       }
     }

@@ -1,0 +1,292 @@
+extends ../../../views/layout
+
+block content
+  // Header
+  div(class="mb-6 flex items-center justify-between")
+    h2(class="text-2xl font-bold text-gray-900") Create
+    a(href="/flow" class="text-sm text-gray-500 hover:text-gray-700") ← Back to FLOW
+
+  if noEntity
+    div(class="bg-white rounded-xl shadow-sm border border-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-2") No entity selected
+      p(class="text-gray-600 mb-4") Please create or select an entity to create workflows.
+      a(href="/entities" class="inline-flex items-center px-4 py-2 rounded-lg font-medium bg-indigo-600 text-white hover:bg-indigo-700") Go to Entities
+  else
+    // Minimal n8n-like builder
+    div(class="grid grid-cols-1 lg:grid-cols-4 gap-6")
+      // Palette
+      div(class="lg:col-span-1 bg-white rounded-xl border border-gray-200 p-4 h-full")
+        h3(class="text-sm font-semibold text-gray-700 mb-3") Type
+        div(class="inline-flex rounded-lg border border-gray-200 overflow-hidden mb-4")
+          button(type="button" id="typePost" class="px-3 py-1.5 text-sm bg-purple-950 text-white") Post
+          button(type="button" id="typeAd" class="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50") Ad
+
+        h3(class="text-sm font-semibold text-gray-700 mb-3") Nodes
+        ul(id="nodePalette" class="space-y-2")
+          li
+            button(type="button" data-node="content" class="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm") Content
+          li
+            button(type="button" data-node="accounts" class="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm") Accounts
+          li
+            button(type="button" data-node="schedule" class="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm") Schedule/Dates
+          li
+            button(type="button" data-node="budget" class="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm") Budget (Ad)
+
+        div(class="mt-6")
+          button(type="button" id="clearCanvas" class="inline-flex items-center px-3 py-1.5 rounded-lg font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm")
+            i(data-lucide="rotate-ccw" class="w-4 h-4 mr-2")
+            | Reset
+
+      // Canvas
+      div(class="lg:col-span-3 bg-white rounded-xl border border-gray-200 p-0 overflow-hidden")
+        // Canvas header
+        div(class="px-4 py-3 border-b border-gray-200 flex items-center justify-between")
+          div(class="flex items-center gap-2")
+            span(id="modeBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700") Post
+            span(class="text-sm text-gray-500") Minimal workflow builder
+          button(type="button" id="submitWorkflow" class="inline-flex items-center px-3 py-1.5 rounded-lg font-medium bg-purple-950 text-white hover:bg-purple-700 text-sm")
+            i(data-lucide="play" class="w-4 h-4 mr-2")
+            | Create
+
+        // Canvas body
+        div(id="canvas" class="p-4")
+          // Simple vertical flow with connectors
+          div(id="nodes" class="space-y-4")
+            // Default first node placeholder
+            div(class="text-sm text-gray-500") Click nodes on the left to add them here.
+
+        // Inline styles
+        style.
+          .wf-node{position:relative;border:1px solid #e5e7eb;border-radius:12px;background:#fff}
+          .wf-node .wf-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #f1f5f9}
+          .wf-node .wf-title{font-size:12px;font-weight:600;color:#111827}
+          .wf-node .wf-body{padding:12px}
+          .wf-connector{width:2px;background:#e5e7eb;margin:0 22px}
+          .wf-actions{display:flex;gap:8px}
+
+        // Inline script
+        script.
+          (function(){
+            const ACCOUNTS = !{JSON.stringify(accounts || [])};
+            const TYPE = { POST: 'post', AD: 'ad' };
+            let mode = TYPE.POST;
+            let nodes = [];
+
+            const el = {
+              typePost: document.getElementById('typePost'),
+              typeAd: document.getElementById('typeAd'),
+              palette: document.getElementById('nodePalette'),
+              nodes: document.getElementById('nodes'),
+              modeBadge: document.getElementById('modeBadge'),
+              submit: document.getElementById('submitWorkflow'),
+              clear: document.getElementById('clearCanvas')
+            };
+
+            function setMode(newMode){
+              mode = newMode;
+              el.typePost.classList.toggle('bg-purple-950', mode===TYPE.POST);
+              el.typePost.classList.toggle('text-white', mode===TYPE.POST);
+              el.typeAd.classList.toggle('bg-purple-950', mode===TYPE.AD);
+              el.typeAd.classList.toggle('text-white', mode===TYPE.AD);
+              el.modeBadge.textContent = mode===TYPE.POST ? 'Post' : 'Ad';
+            }
+
+            function removeNode(id){
+              nodes = nodes.filter(n => n.id !== id);
+              render();
+            }
+
+            function nodeTemplate(node){
+              const id = node.id;
+              if (node.type === 'content') {
+                return `
+                  <div class="wf-node" data-id="${id}">
+                    <div class="wf-header">
+                      <div class="wf-title">${mode===TYPE.POST?'Content':'Creative'}</div>
+                      <div class="wf-actions">
+                        <button type="button" data-action="remove" class="text-xs text-gray-500 hover:text-gray-700">Remove</button>
+                      </div>
+                    </div>
+                    <div class="wf-body space-y-3">
+                      ${mode===TYPE.POST?`
+                        <div>
+                          <label class="block text-xs text-gray-600 mb-1">Title</label>
+                          <input type="text" name="title" class="block w-full border border-gray-200 rounded-md px-2 py-1 text-sm" />
+                        </div>
+                        <div>
+                          <label class="block text-xs text-gray-600 mb-1">Body</label>
+                          <textarea name="body" rows="3" class="block w-full border border-gray-200 rounded-md px-2 py-1 text-sm"></textarea>
+                        </div>
+                      `:`
+                        <div>
+                          <label class="block text-xs text-gray-600 mb-1">Name</label>
+                          <input type="text" name="name" class="block w-full border border-gray-200 rounded-md px-2 py-1 text-sm" />
+                        </div>
+                        <div>
+                          <label class="block text-xs text-gray-600 mb-1">Objective</label>
+                          <input type="text" name="objective" class="block w-full border border-gray-200 rounded-md px-2 py-1 text-sm" />
+                        </div>
+                      `}
+                    </div>
+                  </div>
+                `;
+              }
+              if (node.type === 'accounts') {
+                const accOptions = (ACCOUNTS || []).map(a => ({ id: a.id, label: `${a.platform} - ${a.account_name}` }))
+                  .map(a => `<option value="${a.id}">${a.label}</option>`).join('');
+                return `
+                  <div class="wf-node" data-id="${id}">
+                    <div class="wf-header">
+                      <div class="wf-title">${mode===TYPE.POST?'Share to Accounts':'Place on Accounts'}</div>
+                      <div class="wf-actions">
+                        <button type="button" data-action="remove" class="text-xs text-gray-500 hover:text-gray-700">Remove</button>
+                      </div>
+                    </div>
+                    <div class="wf-body">
+                      <select name="account_ids" multiple class="block w-full border border-gray-200 rounded-md px-2 py-1 text-sm h-28">${accOptions}</select>
+                      <div class="text-[10px] text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</div>
+                    </div>
+                  </div>
+                `;
+              }
+              if (node.type === 'schedule') {
+                return `
+                  <div class="wf-node" data-id="${id}">
+                    <div class="wf-header">
+                      <div class="wf-title">${mode===TYPE.POST?'Schedule':'Dates'}</div>
+                      <div class="wf-actions">
+                        <button type="button" data-action="remove" class="text-xs text-gray-500 hover:text-gray-700">Remove</button>
+                      </div>
+                    </div>
+                    <div class="wf-body grid grid-cols-1 md:grid-cols-2 gap-3">
+                      ${mode===TYPE.POST?`
+                        <div>
+                          <label class="block text-xs text-gray-600 mb-1">Schedule At</label>
+                          <input type="datetime-local" name="scheduled_at" class="block w-full border border-gray-200 rounded-md px-2 py-1 text-sm" />
+                        </div>
+                      `:`
+                        <div>
+                          <label class="block text-xs text-gray-600 mb-1">Start Date</label>
+                          <input type="datetime-local" name="start_date" class="block w-full border border-gray-200 rounded-md px-2 py-1 text-sm" />
+                        </div>
+                        <div>
+                          <label class="block text-xs text-gray-600 mb-1">End Date</label>
+                          <input type="datetime-local" name="end_date" class="block w-full border border-gray-200 rounded-md px-2 py-1 text-sm" />
+                        </div>
+                      `}
+                    </div>
+                  </div>
+                `;
+              }
+              if (node.type === 'budget') {
+                return `
+                  <div class="wf-node" data-id="${id}">
+                    <div class="wf-header">
+                      <div class="wf-title">Budget</div>
+                      <div class="wf-actions">
+                        <button type="button" data-action="remove" class="text-xs text-gray-500 hover:text-gray-700">Remove</button>
+                      </div>
+                    </div>
+                    <div class="wf-body grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label class="block text-xs text-gray-600 mb-1">Budget</label>
+                        <input type="number" step="0.01" name="budget" class="block w-full border border-gray-200 rounded-md px-2 py-1 text-sm" />
+                      </div>
+                      <div>
+                        <label class="block text-xs text-gray-600 mb-1">Currency</label>
+                        <input type="text" name="currency" value="USD" class="block w-full border border-gray-200 rounded-md px-2 py-1 text-sm" />
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }
+              return '';
+            }
+
+            function render(){
+              if (!nodes.length){
+                el.nodes.innerHTML = '<div class="text-sm text-gray-500">Click nodes on the left to add them here.</div>';
+                return;
+              }
+              const html = nodes.map((n, idx) => {
+                const block = nodeTemplate(n);
+                const connector = idx < nodes.length - 1 ? '<div class="wf-connector" style="height:16px"></div>' : '';
+                return `${block}${connector}`;
+              }).join('');
+              el.nodes.innerHTML = html;
+
+              // bind remove buttons
+              el.nodes.querySelectorAll('[data-action="remove"]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                  const parent = e.target.closest('.wf-node');
+                  const id = parent?.getAttribute('data-id');
+                  if (id) removeNode(id);
+                });
+              });
+            }
+
+            function addNode(type){
+              const id = `${type}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+              nodes.push({ id, type });
+              render();
+            }
+
+            function collectData(){
+              const data = {};
+              el.nodes.querySelectorAll('.wf-node').forEach(nodeEl => {
+                nodeEl.querySelectorAll('input, textarea, select').forEach(input => {
+                  if (input.name === 'account_ids' && input.multiple){
+                    const values = Array.from(input.selectedOptions).map(o=>o.value);
+                    data['account_ids'] = values;
+                  } else if (input.name) {
+                    data[input.name] = input.value;
+                  }
+                });
+              });
+              return data;
+            }
+
+            async function submit(){
+              const payload = collectData();
+              try {
+                if (mode === TYPE.POST){
+                  const res = await fetch('/flow/api/posts', {
+                    method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload)
+                  });
+                  const json = await res.json();
+                  if (res.ok && json?.success) {
+                    window.location.href = `/flow/posts/${json.post.id}`;
+                    return;
+                  }
+                  alert(json?.error || 'Failed to create post');
+                } else {
+                  const res = await fetch('/flow/api/ads', {
+                    method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload)
+                  });
+                  const json = await res.json();
+                  if (res.ok && json?.success) {
+                    window.location.href = `/flow/ads/${json.ad.id}`;
+                    return;
+                  }
+                  alert(json?.error || 'Failed to create ad');
+                }
+              } catch (e) {
+                alert('Network error');
+              }
+            }
+
+            // Events
+            el.typePost.addEventListener('click', () => setMode(TYPE.POST));
+            el.typeAd.addEventListener('click', () => setMode(TYPE.AD));
+            el.submit.addEventListener('click', submit);
+            el.clear.addEventListener('click', () => { nodes = []; render(); });
+            el.palette.querySelectorAll('button[data-node]').forEach(btn => {
+              btn.addEventListener('click', () => addNode(btn.getAttribute('data-node')));
+            });
+
+            // init
+            setMode(TYPE.POST);
+            render();
+          })();
+
+

@@ -1,0 +1,92 @@
+extends ../../../views/layout
+
+block content
+  // Page header
+  div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6 mb-8")
+    div(class="flex items-center justify-between")
+      div
+        div(class="flex items-center space-x-3 mb-1")
+          h2(class="text-2xl font-bold text-gray-900 tracking-tight") PULSE
+          // live status pill
+          span(class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700")
+            span(id="statusDot" class=("w-2 h-2 rounded-full mr-2 " + (status === 'ok' ? 'bg-green-500' : 'bg-red-500')))
+            span(id="statusText") #{status === 'ok' ? 'All systems operational' : 'Degraded'}
+        p(class="text-gray-600") Newsletter marketing system overview and quick links
+      div(class="flex items-center space-x-3")
+        a(href="/pulse/campaigns" class="inline-flex items-center px-4 py-2 rounded-xl font-medium bg-blue-600 text-white hover:bg-blue-700 transition")
+          i(data-lucide="plus" class="w-4 h-4 mr-2")
+          | New campaign
+
+  // Key metrics
+  div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10")
+    // Audiences
+    div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6 hover:shadow-md transition")
+      div(class="flex items-center justify-between mb-2")
+        span(class="text-sm text-gray-500") Audiences
+        i(data-lucide="users" class="w-4 h-4 text-gray-400")
+      div(id="audiencesCount" class="text-2xl font-semibold text-gray-900") #{audiencesCount || 0}
+      a(href="/pulse/audiences" class="inline-flex items-center mt-4 text-sm text-blue-600 hover:text-blue-700")
+        | Manage audiences
+        i(data-lucide="arrow-right" class="w-4 h-4 ml-1")
+
+    // Subscribers
+    div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6 hover:shadow-md transition")
+      div(class="flex items-center justify-between mb-2")
+        span(class="text-sm text-gray-500") Subscribers
+        i(data-lucide="user-plus" class="w-4 h-4 text-gray-400")
+      div(id="subscribersCount" class="text-2xl font-semibold text-gray-900") #{subscribersCount || 0}
+      a(href="/pulse/subscribers" class="inline-flex items-center mt-4 text-sm text-blue-600 hover:text-blue-700")
+        | Manage subscribers
+        i(data-lucide="arrow-right" class="w-4 h-4 ml-1")
+
+    // Campaigns
+    div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6 hover:shadow-md transition")
+      div(class="flex items-center justify-between mb-2")
+        span(class="text-sm text-gray-500") Campaigns
+        i(data-lucide="mail" class="w-4 h-4 text-gray-400")
+      div(id="campaignsCount" class="text-2xl font-semibold text-gray-900") #{campaignsCount || 0}
+      a(href="/pulse/campaigns" class="inline-flex items-center mt-4 text-sm text-blue-600 hover:text-blue-700")
+        | Manage campaigns
+        i(data-lucide="arrow-right" class="w-4 h-4 ml-1")
+
+    // Templates
+    div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6 hover:shadow-md transition")
+      div(class="flex items-center justify-between mb-2")
+        span(class="text-sm text-gray-500") Templates
+        i(data-lucide="file-text" class="w-4 h-4 text-gray-400")
+      div(id="templatesCount" class="text-2xl font-semibold text-gray-900") #{templatesCount || 0}
+      a(href="/pulse/templates" class="inline-flex items-center mt-4 text-sm text-blue-600 hover:text-blue-700")
+        | Manage templates
+        i(data-lucide="arrow-right" class="w-4 h-4 ml-1")
+
+  // Quick actions
+  div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6")
+    div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-2") Audiences
+      p(class="text-gray-600 mb-4") Organize contacts by lists
+      a(href="/pulse/audiences" class="inline-flex items-center px-4 py-2 rounded-xl font-medium bg-gray-100 text-gray-900 hover:bg-gray-200 transition")
+        i(data-lucide="users" class="w-4 h-4 mr-2")
+        | Go to Audiences
+
+    div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-2") Subscribers
+      p(class="text-gray-600 mb-4") Add, remove and segment subscribers
+      a(href="/pulse/subscribers" class="inline-flex items-center px-4 py-2 rounded-xl font-medium bg-gray-100 text-gray-900 hover:bg-gray-200 transition")
+        i(data-lucide="user-plus" class="w-4 h-4 mr-2")
+        | Go to Subscribers
+
+    div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-2") Templates
+      p(class="text-gray-600 mb-4") Build reusable email templates
+      a(href="/pulse/templates" class="inline-flex items-center px-4 py-2 rounded-xl font-medium bg-gray-100 text-gray-900 hover:bg-gray-200 transition")
+        i(data-lucide="file-text" class="w-4 h-4 mr-2")
+        | Go to Templates
+
+    div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6")
+      h3(class="text-lg font-medium text-gray-900 mb-2") Campaigns
+      p(class="text-gray-600 mb-4") Create and schedule email campaigns
+      a(href="/pulse/campaigns" class="inline-flex items-center px-4 py-2 rounded-xl font-medium bg-gray-100 text-gray-900 hover:bg-gray-200 transition")
+        i(data-lucide="mail" class="w-4 h-4 mr-2")
+        | Go to Campaigns
+
+  

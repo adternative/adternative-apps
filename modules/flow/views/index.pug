@@ -1,0 +1,274 @@
+extends ../../../views/layout
+
+block content
+  div(class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8")
+    // Entity List
+    div(class="lg:col-span-2")
+      div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6 mb-8 h-full")
+        div(class="flex flex-col gap-4")
+          div
+            div(class="flex items-center space-x-3 mb-1")
+              h2(class="text-2xl font-bold text-gray-900 tracking-tight") FLOW
+              // live status pill
+              span(class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700")
+                span(id="statusDot" class=("w-2 h-2 rounded-full mr-2 " + (status === 'ok' ? 'bg-green-500' : 'bg-red-500')))
+                span(id="statusText") #{status === 'ok' ? 'All systems operational' : 'Degraded'}
+            p(class="text-gray-600") Newsletter marketing system overview and quick links
+          div(class="flex items-center space-x-3 mt-8")
+            a(href="/flow/create" class="inline-flex items-center px-4 py-2 rounded-xl font-medium bg-purple-950 text-white hover:bg-purple-700 transition")
+              i(data-lucide="plus" class="w-4 h-4 mr-2")
+              | Create
+
+    // Current Entity Info
+    div(class="lg:col-span-1")
+      div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6 h-full")
+        h3(class="text-lg font-medium text-gray-900 mb-4") Connected Social Accounts
+        div(class="mt-4 py-4 border-t border-gray-200")
+          div(class="grid grid-cols-2 sm:grid-cols-3 gap-6")
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full p-3 rounded-lg bg-pink-600 text-white hover:bg-pink-700 text-sm" data-platform="instagram")
+              i(data-lucide="instagram" class="w-4 h-4 mr-2")
+              | Instagram
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm" data-platform="facebook")
+              i(data-lucide="facebook" class="w-4 h-4 mr-2")
+              | Facebook
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full p-3 rounded-lg bg-sky-700 text-white hover:bg-sky-800 text-sm" data-platform="linkedin")
+              i(data-lucide="linkedin" class="w-4 h-4 mr-2")
+              | LinkedIn
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full p-3 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 text-sm" data-platform="tiktok")
+              i(data-lucide="music-2" class="w-4 h-4 mr-2")
+              | TikTok
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full p-3 rounded-lg bg-neutral-900 text-white hover:bg-neutral-800 text-sm" data-platform="twitter")
+              i(data-lucide="twitter" class="w-4 h-4 mr-2")
+              | Twitter (X)
+            button(type="button" class="entity-platform-btn inline-flex items-center justify-center w-full p-3 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm" data-platform="youtube")
+              i(data-lucide="youtube" class="w-4 h-4 mr-2")
+              | YouTube
+
+
+  // Stats cards
+  div(class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8")
+    // Content Calendar (Meta-like)
+    div(class="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-0 sm:col-span-3")
+      div(id="contentCalendar" class="flow-calendar flex flex-col")
+        // Header
+        div(class="px-4 sm:px-6 py-3 border-b border-gray-200 flex items-center justify-between cal-header")
+          div(class="flex items-center gap-2")
+            button(type="button" id="calPrev" class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50")
+              span(class="sr-only") Previous month
+              | ‹
+            button(type="button" id="calToday" class="inline-flex items-center px-3 h-8 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm") Today
+            button(type="button" id="calNext" class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50")
+              span(class="sr-only") Next month
+              | ›
+          div(class="text-base sm:text-lg font-semibold text-gray-900 select-none")
+            span(id="calMonthLabel")
+          div(class="hidden sm:flex items-center gap-2")
+            span(class="text-xs text-gray-500") Legend:
+            span(class="inline-flex items-center gap-1 text-xs text-gray-600")
+              span(class="w-2 h-2 rounded-full bg-purple-600")
+              | Post
+            span(class="inline-flex items-center gap-1 text-xs text-gray-600")
+              span(class="w-2 h-2 rounded-full bg-blue-600")
+              | Ad
+
+        // Day names
+        div(id="calDayNames" class="grid grid-cols-7 text-[11px] uppercase tracking-wide text-gray-500 px-4 sm:px-6 pt-3 pb-2")
+
+        // Grid
+        div(class="px-2 sm:px-4 pb-4")
+          div(id="calGridWrapper" class="border border-gray-200 rounded-xl overflow-hidden")
+            div(id="calGrid" class="grid grid-cols-7 divide-x divide-y divide-gray-200 bg-white")
+
+      // Module-scoped styles
+      style.
+        .flow-calendar{--cal-border:#e5e7eb;--cal-muted:#6b7280;--cal-bg:#ffffff;--cal-bg-alt:#fafafa;--cal-hover:rgba(17,24,39,0.04)}
+        .flow-calendar .cal-header{background:linear-gradient(180deg,#fff,#fafafa)}
+        .flow-calendar .cal-header button{border-color:var(--cal-border)}
+        .flow-calendar #calGridWrapper{border-color:var(--cal-border)}
+        .flow-calendar #calDayNames>div{font-weight:600;letter-spacing:.02em}
+        .flow-calendar .cal-cell{min-height:128px;padding:8px;background:var(--cal-bg);transition:background .12s ease,box-shadow .12s ease}
+        @media(min-width:640px){.flow-calendar .cal-cell{min-height:140px;padding:10px}}
+        .flow-calendar .cal-cell:hover{background:var(--cal-hover);box-shadow:inset 0 0 0 1px var(--cal-border)}
+        .flow-calendar .cal-cell.is-weekend{background:var(--cal-bg-alt)}
+        .flow-calendar .date-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+        .flow-calendar .date-badge{font-size:11px;color:#111827}
+        .flow-calendar .date-badge.is-out{color:#9ca3af}
+        .flow-calendar .event-list{display:grid;gap:4px}
+        .flow-calendar .event-row{display:flex;align-items:center;gap:6px;padding:2px 8px;border-radius:6px;font-size:11px;line-height:1rem;color:#1f2937}
+        .flow-calendar .event-row:hover{background:#f9fafb}
+        .flow-calendar .event-dot{width:6px;height:6px;border-radius:9999px}
+        .flow-calendar .more{font-size:11px;color:var(--cal-muted);padding:0 8px}
+
+      // Inline script
+      script.
+        (function() {
+          const monthLabelEl = document.getElementById('calMonthLabel');
+          const gridEl = document.getElementById('calGrid');
+          const namesEl = document.getElementById('calDayNames');
+          const prevBtn = document.getElementById('calPrev');
+          const nextBtn = document.getElementById('calNext');
+          const todayBtn = document.getElementById('calToday');
+
+          if (!monthLabelEl || !gridEl || !namesEl) return;
+
+          const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          namesEl.innerHTML = DAY_NAMES.map(n => `<div class="text-center">${n}</div>`).join('');
+
+          let current = new Date();
+          current.setDate(1);
+
+          const startOfWeek = (d) => {
+            const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const day = x.getDay();
+            x.setDate(x.getDate() - day);
+            x.setHours(0,0,0,0);
+            return x;
+          };
+          const endOfWeek = (d) => {
+            const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const day = x.getDay();
+            x.setDate(x.getDate() + (6 - day));
+            x.setHours(23,59,59,999);
+            return x;
+          };
+          const startOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
+          const endOfMonth = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23,59,59,999);
+          const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+          async function fetchEvents(rangeStart, rangeEnd) {
+            const qs = `?start=${encodeURIComponent(rangeStart.toISOString())}&end=${encodeURIComponent(rangeEnd.toISOString())}`;
+            const res = await fetch(`/flow/api/calendar${qs}`);
+            if (!res.ok) return [];
+            const data = await res.json().catch(() => ({ success: true, events: [] }));
+            return Array.isArray(data?.events) ? data.events : [];
+          }
+
+          function renderMonthLabel(d) {
+            const formatter = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
+            monthLabelEl.textContent = formatter.format(d);
+          }
+
+          function eventRow(e) {
+            const color = e.type === 'post' ? 'bg-purple-600' : 'bg-blue-600';
+            const title = e.title || (e.type === 'post' ? 'Post' : 'Ad');
+            const safeTitle = title.replace(/"/g, '&quot;');
+            const href = e.url || '#';
+            return `
+              <a href="${href}" title="${safeTitle}" class="event-row">
+                <span class="event-dot ${color}"></span>
+                <span class="truncate">${safeTitle}</span>
+              </a>
+            `;
+          }
+
+          async function render() {
+            renderMonthLabel(current);
+            const monthStart = startOfMonth(current);
+            const monthEnd = endOfMonth(current);
+            const gridStart = startOfWeek(monthStart);
+            const gridEnd = endOfWeek(monthEnd);
+
+            const events = await fetchEvents(gridStart, gridEnd);
+            // Sort: posts first, then ads
+            events.sort((a,b) => (a.type === b.type ? 0 : a.type === 'post' ? -1 : 1));
+            const byDay = events.reduce((acc, e) => {
+              (acc[e.date] = acc[e.date] || []).push(e);
+              return acc;
+            }, {});
+
+            const cells = [];
+            let cursor = new Date(gridStart);
+            const today = new Date();
+            const todayKey = ymd(today);
+            while (cursor <= gridEnd) {
+              const inMonth = cursor.getMonth() === current.getMonth();
+              const key = ymd(cursor);
+              const items = byDay[key] || [];
+              const visible = items.slice(0, 4);
+              const overflow = items.length - visible.length;
+              const isToday = key === todayKey;
+              const isWeekend = cursor.getDay() === 0 || cursor.getDay() === 6;
+              const dateBadge = isToday
+                ? `<span class="date-badge inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white">${cursor.getDate()}</span>`
+                : `<span class="date-badge ${inMonth ? '' : 'is-out'}">${cursor.getDate()}</span>`;
+
+              cells.push(`
+                <div class="cal-cell ${isWeekend ? 'is-weekend' : ''}">
+                  <div class="date-row">
+                    <span class="text-[10px] uppercase tracking-wide ${inMonth ? 'text-gray-400' : 'text-gray-300'}">&nbsp;</span>
+                    ${dateBadge}
+                  </div>
+                  <div class="event-list">
+                    ${visible.map(eventRow).join('')}
+                    ${overflow > 0 ? `<div class="more">+${overflow} more</div>` : ''}
+                  </div>
+                </div>
+              `);
+              cursor.setDate(cursor.getDate() + 1);
+            }
+
+            gridEl.innerHTML = cells.join('');
+          }
+
+          prevBtn && prevBtn.addEventListener('click', () => {
+            current.setMonth(current.getMonth() - 1);
+            render();
+          });
+          nextBtn && nextBtn.addEventListener('click', () => {
+            current.setMonth(current.getMonth() + 1);
+            render();
+          });
+          todayBtn && todayBtn.addEventListener('click', () => {
+            const now = new Date();
+            current = new Date(now.getFullYear(), now.getMonth(), 1);
+            render();
+          });
+
+          render();
+        })();
+    
+
+  // Two-column: Posts and Ads
+  if noEntity
+    div(class="bg-white rounded-xl border border-gray-200 p-8 text-center mb-8")
+      h3(class="text-lg font-medium text-gray-900 mb-2") No entity selected
+      p(class="text-gray-600 mb-4") You need to create or select an entity to use FLOW.
+      a(href="/entities" class="inline-flex items-center px-4 py-2 rounded-lg font-medium bg-indigo-600 text-white hover:bg-indigo-700") Go to Entities
+  div(class="grid grid-cols-1 lg:grid-cols-2 gap-6")
+    // Posts panel
+    div(class="bg-white rounded-xl border border-gray-200 overflow-hidden")
+      div(class="px-6 py-4 border-b border-gray-200 flex items-center justify-between")
+        h3(class="text-lg font-medium text-gray-900 flex items-center")
+          i(data-lucide="file-text" class="w-4 h-4 mr-2 text-gray-500")
+          | Recent Posts
+        a(href="/flow/posts" class="text-sm text-indigo-600 hover:text-indigo-800") View all →
+      if recentPosts && recentPosts.length
+        ul(class="divide-y divide-gray-200")
+          each p in recentPosts
+            li(class="px-6 py-4 flex items-center justify-between hover:bg-gray-50")
+              div
+                div(class="font-medium text-gray-900") #{p.title || 'Untitled Post'}
+                div(class="text-xs text-gray-500 mt-1")
+                  span(class=`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.status==='published'?'bg-green-100 text-green-700':p.status==='scheduled'?'bg-yellow-100 text-yellow-700':p.status==='failed'?'bg-red-100 text-red-700':'bg-gray-100 text-gray-700'}`) #{p.status}
+              a(href=`/flow/posts/${p.id}` class="text-sm text-gray-500 hover:text-gray-700") Open →
+      else
+        div(class="px-6 py-8 text-center text-gray-500") No posts yet.
+
+    // Ads panel
+    div(class="bg-white rounded-xl border border-gray-200 overflow-hidden")
+      div(class="px-6 py-4 border-b border-gray-200 flex items-center justify-between")
+        h3(class="text-lg font-medium text-gray-900 flex items-center")
+          i(data-lucide="rocket" class="w-4 h-4 mr-2 text-gray-500")
+          | Recent Ads
+        a(href="/flow/ads" class="text-sm text-indigo-600 hover:text-indigo-800") View all →
+      if recentAds && recentAds.length
+        ul(class="divide-y divide-gray-200")
+          each a in recentAds
+            li(class="px-6 py-4 flex items-center justify-between hover:bg-gray-50")
+              div
+                div(class="font-medium text-gray-900") #{a.name}
+                div(class="text-xs text-gray-500 mt-1")
+                  span(class=`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${a.status==='running'?'bg-green-100 text-green-700':a.status==='scheduled'?'bg-yellow-100 text-yellow-700':a.status==='failed'?'bg-red-100 text-red-700':'bg-gray-100 text-gray-700'}`) #{a.status}
+              a(href=`/flow/ads/${a.id}` class="text-sm text-gray-500 hover:text-gray-700") Open →
+      else
+        div(class="px-6 py-8 text-center text-gray-500") No ads yet.

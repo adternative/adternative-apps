@@ -1,0 +1,25 @@
+{
+    "name": "FLOW",
+    "icon": "workflow",
+    "description": "Newsletter marketing system overview and quick links",
+    "pricing": {
+        "monthly": {
+            "amount": 15900,
+            "currency": "USD"
+        },
+        "yearly": {
+            "amount": 159000,
+            "currency": "USD"
+        }
+    },
+    "links": [
+        {
+            "name": "Create",
+            "url": "/create"
+        },
+        {
+            "name": "Browse",
+            "url": "/browse"
+        }
+    ]
+}
