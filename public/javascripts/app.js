@@ -2,6 +2,7 @@
 class App {
   constructor() {
     this.token = localStorage.getItem('authToken');
+    this.disableEntityHandlers = window.__APP_DISABLE_ENTITY_HANDLERS__ === true;
     
     this.init();
   }
@@ -10,8 +11,10 @@ class App {
     this.setupEventListeners();
     this.setupSidebar();
     this.loadCurrentEntity();
-    this.setupGlobalEntityModal();
-    this.setupConnectAccountModal();
+    if (!this.disableEntityHandlers) {
+      this.setupGlobalEntityModal();
+      this.setupConnectAccountModal();
+    }
   }
 
   loadCurrentEntity() {
@@ -141,38 +144,40 @@ class App {
     }
 
     // Entity modal platform buttons -> prompt and connect
-    const entityPlatformBtns = document.querySelectorAll('.entity-platform-btn');
-    if (entityPlatformBtns && entityPlatformBtns.length) {
-      entityPlatformBtns.forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const p = btn.getAttribute('data-platform');
-          const entityId = localStorage.getItem('currentEntityId');
-          if (!entityId) {
-            alert('Select or create an entity first.');
-            return;
-          }
-          const account_name = prompt(`Enter ${p} account name`);
-          if (!account_name) return;
-          const account_id = prompt(`Enter ${p} account id/handle`);
-          if (!account_id) return;
-          try {
-            const res = await fetch('/entities/accounts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-              body: JSON.stringify({ platform: p, account_name, account_id, entity_id: entityId })
-            });
-            const json = await res.json();
-            if (res.ok && json.success) {
-              alert('Account connected');
-            } else {
-              alert(json.error || 'Failed to connect account');
+    if (!this.disableEntityHandlers) {
+      const entityPlatformBtns = document.querySelectorAll('.entity-platform-btn');
+      if (entityPlatformBtns && entityPlatformBtns.length) {
+        entityPlatformBtns.forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const p = btn.getAttribute('data-platform');
+            const entityId = localStorage.getItem('currentEntityId');
+            if (!entityId) {
+              alert('Select or create an entity first.');
+              return;
             }
-          } catch (err) {
-            console.error('Connect account error', err);
-            alert('Failed to connect account');
-          }
+            const account_name = prompt(`Enter ${p} account name`);
+            if (!account_name) return;
+            const account_id = prompt(`Enter ${p} account id/handle`);
+            if (!account_id) return;
+            try {
+              const res = await fetch('/entities/accounts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+                body: JSON.stringify({ platform: p, account_name, account_id, entity_id: entityId })
+              });
+              const json = await res.json();
+              if (res.ok && json.success) {
+                alert('Account connected');
+              } else {
+                alert(json.error || 'Failed to connect account');
+              }
+            } catch (err) {
+              console.error('Connect account error', err);
+              alert('Failed to connect account');
+            }
+          });
         });
-      });
+      }
     }
   }
 

@@ -182,7 +182,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
     const user = await User.findByPk(req.user.id, {
       include: [{
         association: 'entities',
-        where: { isActive: true },
+        where: { is_active: true },
         required: false
       }]
     });

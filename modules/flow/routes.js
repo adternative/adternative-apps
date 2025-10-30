@@ -401,7 +401,8 @@ router.get('/ads/:id', withAvailableApps, async (req, res) => {
     placements.forEach((pl, idx) => {
       const acc = pl.platformAccount || {};
       const nodeId = `placement-${idx}`;
-      nodes.push({ id: nodeId, label: `${acc.platform || ''}\\n${acc.account_name || ''}`.trim(), type: 'placement', status: pl.status });
+      const label = `${acc.platform || ''}\n${acc.account_name || ''}`.trim();
+      nodes.push({ id: nodeId, label, type: 'placement', status: pl.status });
       edges.push({ from: 'creative', to: nodeId });
     });
 

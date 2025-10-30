@@ -656,8 +656,8 @@ router.delete('/:entityId', async (req, res) => {
     const entity = await Entity.findOne({
       where: {
         id: entityId,
-        userId: req.user.id,
-        isActive: true
+        user_id: req.user.id,
+        is_active: true
       }
     });
 

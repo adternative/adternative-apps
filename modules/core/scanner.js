@@ -5,6 +5,7 @@
 
 const { Entity } = require('../../models');
 const { Sentiment } = require('./models');
+const { PlatformAccount } = require('../flow/models');
 const connectors = require('./connectors');
 const { analyzeMultiPlatform } = require('./sentiment');
 const { sendAlert } = require('./alerts');
@@ -24,36 +25,56 @@ const scanEntity = async (entityId) => {
       throw new Error(`Entity not found: ${entityId}`);
     }
     
-    if (!entity.social_media_platforms || typeof entity.social_media_platforms !== 'object') {
-      throw new Error(`No social media platforms configured for entity: ${entityId}`);
+    const activeAccounts = await PlatformAccount.findAll({
+      where: {
+        entity_id: entityId,
+        is_active: true
+      }
+    });
+
+    if (!activeAccounts.length) {
+      throw new Error(`No social platform accounts connected for entity: ${entityId}`);
     }
     
     // Collect posts from each platform
     const platformData = {};
-    const platforms = Object.keys(entity.social_media_platforms);
+    const availablePlatforms = new Set(connectors.getAvailablePlatforms());
+    const groupedAccounts = activeAccounts.reduce((acc, account) => {
+      const key = (account.platform || '').toLowerCase();
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(account);
+      return acc;
+    }, {});
     
-    // Check if there are any platforms configured
-    if (platforms.length === 0) {
-      throw new Error(`No social media platforms configured for entity: ${entityId}`);
-    }
-    
-    for (const platform of platforms) {
-      if (!connectors.getAvailablePlatforms().includes(platform)) {
+    for (const [platform, accounts] of Object.entries(groupedAccounts)) {
+      if (!availablePlatforms.has(platform)) {
         console.log(`[Scanner] Skipping unsupported platform: ${platform}`);
         continue;
       }
-      
-      try {
-        const identifier = entity.social_media_platforms[platform];
-        console.log(`[Scanner] Fetching ${platform} data for identifier: ${identifier}`);
-        
-        const posts = await connectors.fetchFromPlatform(platform, identifier);
-        platformData[platform] = posts;
-        
-        console.log(`[Scanner] Retrieved ${posts.length} posts from ${platform}`);
-      } catch (error) {
-        console.error(`[Scanner] Error fetching from ${platform}:`, error.message);
-        // Continue with other platforms
+
+      const collectedPosts = [];
+
+      for (const account of accounts) {
+        const identifier = account.account_id || account.account_name;
+        if (!identifier) {
+          continue;
+        }
+
+        try {
+          console.log(`[Scanner] Fetching ${platform} data for identifier: ${identifier}`);
+          const posts = await connectors.fetchFromPlatform(platform, identifier);
+          if (Array.isArray(posts) && posts.length) {
+            collectedPosts.push(...posts);
+            console.log(`[Scanner] Retrieved ${posts.length} posts from ${platform}`);
+          }
+        } catch (error) {
+          console.error(`[Scanner] Error fetching from ${platform} (${identifier}):`, error.message);
+          // Continue with other accounts
+        }
+      }
+
+      if (collectedPosts.length) {
+        platformData[platform] = collectedPosts;
       }
     }
     
