@@ -15,9 +15,14 @@ const requireAuth = (req, res, next) => {
 
   // Check for JWT token in Authorization header
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const headerToken = authHeader && authHeader.split(' ')[1];
+  const cookieToken = req.cookies && req.cookies.authToken ? req.cookies.authToken : null;
+  const token = headerToken || cookieToken;
 
   if (token) {
+    if (!authHeader && cookieToken) {
+      req.headers.authorization = `Bearer ${cookieToken}`;
+    }
     // Use existing JWT auth middleware
     return authenticateToken(req, res, next);
   }

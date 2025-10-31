@@ -216,10 +216,10 @@ router.get('/subscribers', withAvailableApps, async (req, res) => {
 });
 
 // API Routes
-const audiences = require('./controllers/audiencesController');
-const subscribers = require('./controllers/subscribersController');
-const campaigns = require('./controllers/campaignsController');
-const templates = require('./controllers/templatesController');
+const audiences = require('./controllers/audiences');
+const subscribers = require('./controllers/subscribers');
+const campaigns = require('./controllers/campaigns');
+const templates = require('./controllers/templates');
 
 router.get('/api/:entityId/status', requireAppAccess('pulse'), async (req, res) => {
   res.json({ app: 'PULSE', entityId: req.params.entityId, status: 'ok' });

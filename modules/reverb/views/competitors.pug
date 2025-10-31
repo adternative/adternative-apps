@@ -1,0 +1,50 @@
+extends ../../../views/layout
+
+block content
+  - const competitorList = competitors || [];
+
+  div(class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4")
+    div
+      h2(class="text-3xl font-semibold text-slate-900 tracking-tight") Competitor overlap
+      p(class="text-slate-500 mt-2") Benchmark #{site ? site.domain : 'your site'} against rival domains for keywords and backlinks.
+    form(action="/reverb/competitors/sync" method="post" class="inline-flex")
+      input(type="hidden" name="mock" value="true")
+      button(type="submit" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 transition")
+        i(data-lucide="refresh-cw" class="w-4 h-4")
+        | Refresh overlap
+
+  if feedback && feedback.status
+    div(class=(feedback.status === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700') + ' rounded-xl px-4 py-3 mb-6 text-sm flex items-start gap-3')
+      i(data-lucide=feedback.status === 'success' ? 'check-circle' : 'alert-triangle' class="w-4 h-4 mt-0.5")
+      span #{feedback.message || (feedback.status === 'success' ? 'Competitor data refreshed.' : 'Unable to refresh competitor data.')}
+
+  if competitorList.length
+    div(class="grid grid-cols-1 lg:grid-cols-2 gap-6")
+      each competitor in competitorList
+        div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
+          div(class="flex items-center justify-between mb-3")
+            h3(class="text-lg font-semibold text-slate-900") #{competitor.domain}
+            span(class="text-xs text-slate-400 uppercase tracking-wide") Keyword overlap #{competitor.keywordOverlap !== undefined ? competitor.keywordOverlap + '%' : '—'}
+          p(class="text-sm text-slate-500 mb-4") Backlink overlap #{competitor.backlinkOverlap !== undefined ? competitor.backlinkOverlap + '%' : '—'}
+          if competitor.opportunities && competitor.opportunities.length
+            h4(class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2") Content gaps
+            ul(class="space-y-3 text-sm text-slate-600")
+              each gap in competitor.opportunities
+                li(class="border border-slate-200 rounded-xl p-3")
+                  div(class="flex items-center justify-between mb-1")
+                    span(class="font-medium text-slate-700") #{gap.keyword}
+                    span(class="text-xs text-blue-500") Opportunity #{gap.opportunityScore !== undefined ? gap.opportunityScore : '—'}
+                  if gap.notes
+                    p(class="text-xs text-slate-500") #{gap.notes}
+          else
+            p(class="text-sm text-slate-500") No content gaps detected for this competitor.
+  else
+    div(class="bg-white border border-dashed border-slate-300 rounded-2xl p-8 text-center text-slate-500")
+      h3(class="text-lg font-semibold text-slate-800 mb-2") No competitors synced
+      p(class="mb-4") Refresh overlap data to surface competing domains and topic gaps.
+      form(action="/reverb/competitors/sync" method="post" class="inline-flex")
+        input(type="hidden" name="mock" value="true")
+        button(type="submit" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 transition")
+          i(data-lucide="refresh-cw" class="w-4 h-4")
+          | Refresh overlap
+

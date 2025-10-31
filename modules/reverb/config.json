@@ -1,6 +1,33 @@
 {
     "name": "REVERB",
     "icon": "audio-waveform",
+    "description": "Next-generation SEO intelligence: technical health, keyword modeling, backlink velocity, and predictive insights.",
+    "toggles": {
+        "enableMockData": true,
+        "enablePredictive": true
+    },
+    "links": [
+        {
+            "name": "Site Health",
+            "url": "/site-health"
+        },
+        {
+            "name": "Keywords",
+            "url": "/keywords"
+        },
+        {
+            "name": "Backlinks",
+            "url": "/backlinks"
+        },
+        {
+            "name": "Competitors",
+            "url": "/competitors"
+        },
+        {
+            "name": "Insights",
+            "url": "/insights"
+        }
+    ],
     "pricing": {
         "monthly": {
             "amount": 10900,

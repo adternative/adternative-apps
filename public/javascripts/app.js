@@ -293,35 +293,48 @@ class App {
     modal.addEventListener('click', (e) => { if (e.target.id === 'globalCreateEntityModal') hide(); });
 
     if (form) {
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const fd = new FormData(form);
-        const payload = Object.fromEntries(fd.entries());
-        try {
-          const res = await fetch('/entities', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-            body: JSON.stringify(payload)
-          });
-          const json = await res.json();
-          if (res.ok && json.success) {
-            // Switch to new entity for session/state
-            await fetch('/entities/switch', {
+      const useAjax = form.dataset.ajax === 'true';
+      if (useAjax) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const fd = new FormData(form);
+          const payload = Object.fromEntries(fd.entries());
+          try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (this.token) {
+              headers['Authorization'] = `Bearer ${this.token}`;
+            }
+            const res = await fetch('/entities', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-              body: JSON.stringify({ entityId: json.entity.id })
+              headers,
+              credentials: 'same-origin',
+              body: JSON.stringify(payload)
             });
-            localStorage.setItem('currentEntityId', json.entity.id);
-            hide();
-            window.location.reload();
-          } else {
-            alert(json.error?.error || json.error?.message || 'Failed to create entity');
+            const json = await res.json();
+            if (res.ok && json.success) {
+              // Switch to new entity for session/state
+              const switchHeaders = { 'Content-Type': 'application/json' };
+              if (this.token) {
+                switchHeaders['Authorization'] = `Bearer ${this.token}`;
+              }
+              await fetch('/entities/switch', {
+                method: 'POST',
+                headers: switchHeaders,
+                credentials: 'same-origin',
+                body: JSON.stringify({ entityId: json.entity.id })
+              });
+              localStorage.setItem('currentEntityId', json.entity.id);
+              hide();
+              window.location.reload();
+            } else {
+              alert(json.error?.error || json.error?.message || 'Failed to create entity');
+            }
+          } catch (err) {
+            console.error('Create entity error', err);
+            alert('Failed to create entity');
           }
-        } catch (err) {
-          console.error('Create entity error', err);
-          alert('Failed to create entity');
-        }
-      });
+        });
+      }
     }
   }
 
@@ -332,10 +345,14 @@ class App {
       // Call logout endpoint to clear session
       await fetch('/auth/logout', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: (() => {
+          const headers = { 'Content-Type': 'application/json' };
+          if (this.token) {
+            headers['Authorization'] = `Bearer ${this.token}`;
+          }
+          return headers;
+        })(),
+        credentials: 'same-origin'
       });
     } catch (error) {
       console.error('Logout error:', error);

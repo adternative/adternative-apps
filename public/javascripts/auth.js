@@ -37,6 +37,7 @@ class Auth {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'same-origin',
         body: JSON.stringify(loginData)
       });
 
@@ -79,6 +80,7 @@ class Auth {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'same-origin',
         body: JSON.stringify(registerData)
       });
 

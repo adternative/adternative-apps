@@ -1,0 +1,11 @@
+extends ../../../views/layout
+
+block content
+  div(class="max-w-xl mx-auto text-center py-20")
+    h2(class="text-2xl font-semibold text-slate-900 mb-4") REVERB ran into an issue
+    p(class="text-slate-600 mb-8") #{error || 'An unexpected error occurred while loading REVERB. Please retry.'}
+    a(href="/reverb" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition")
+      i(data-lucide="arrow-left" class="w-4 h-4")
+      | Back to dashboard
+
+

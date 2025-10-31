@@ -1,0 +1,126 @@
+extends ../../../views/layout
+
+block content
+  - const keywordRecord = keyword || null;
+  - const historyData = history || {};
+  - const records = historyData.records || [];
+  - const visibility = historyData.visibility !== undefined ? historyData.visibility : null;
+  - const latestRecord = records.length ? records[0] : null;
+  - const currentPosition = latestRecord && latestRecord.position !== undefined ? latestRecord.position : '—';
+  - const currentUrl = latestRecord && latestRecord.url ? latestRecord.url : null;
+
+  div(class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4")
+    div
+      h2(class="text-3xl font-semibold text-slate-900 tracking-tight") Rank history
+      if keywordRecord
+        p(class="text-slate-500 mt-2") Tracking #{keywordRecord.keyword}
+    div(class="flex flex-wrap items-center gap-3")
+      form(action="/reverb/keywords/" + keywordRecord.id + "/rank-history" method="get" class="inline-flex")
+        input(type="hidden" name="sync" value="true")
+        button(type="submit" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-blue-500 hover:text-blue-600 transition")
+          i(data-lucide="refresh-cw" class="w-4 h-4")
+          | Refresh history
+      a(href="/reverb/keywords" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-blue-500 hover:text-blue-600 transition")
+        i(data-lucide="arrow-left" class="w-4 h-4")
+        | Back to keywords
+
+  if feedback && feedback.status
+    div(class=(feedback.status === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700') + ' rounded-xl px-4 py-3 mb-6 text-sm flex items-start gap-3')
+      i(data-lucide=feedback.status === 'success' ? 'check-circle' : 'alert-triangle' class="w-4 h-4 mt-0.5")
+      span #{feedback.message || (feedback.status === 'success' ? 'History refreshed.' : 'Unable to refresh history.')}
+
+  div(class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8")
+    div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
+      span(class="text-xs uppercase font-semibold tracking-wide text-slate-500") Current position
+      h3(class="text-3xl font-bold text-slate-900 mt-3") #{currentPosition}
+      if currentUrl
+        a(href=currentUrl target="_blank" rel="noopener" class="text-xs text-blue-600 hover:text-blue-700 mt-2 inline-block") #{currentUrl}
+    div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
+      span(class="text-xs uppercase font-semibold tracking-wide text-slate-500") Visibility score
+      h3(class="text-3xl font-bold text-slate-900 mt-3") #{visibility !== null ? visibility : '—'}
+      p(class="text-sm text-slate-500 mt-3") Average weighted visibility across history window.
+    div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
+      span(class="text-xs uppercase font-semibold tracking-wide text-slate-500") Records
+      h3(class="text-3xl font-bold text-slate-900 mt-3") #{records.length}
+      p(class="text-sm text-slate-500 mt-3") Stored entries for the past tracking interval.
+
+  div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8")
+    h3(class="text-lg font-semibold text-slate-900 mb-4") Timeline
+    canvas#rankChart(width="400" height="200")
+
+  div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
+    h3(class="text-lg font-semibold text-slate-900 mb-4") Historical entries
+    if records.length
+      table(class="w-full text-sm text-left text-slate-600 border-t border-slate-200")
+        thead
+          tr(class="text-xs uppercase text-slate-500 tracking-wide")
+            th(class="py-3") Date
+            th(class="py-3") Position
+            th(class="py-3") Change
+            th(class="py-3") Visibility
+            th(class="py-3") URL
+        tbody
+          each record in records
+            - const recordedAt = record && record.recordedAt ? new Date(record.recordedAt) : null;
+            - const change = record && record.change !== undefined && record.change !== null ? record.change : 0;
+            tr(class="border-t border-slate-200 hover:bg-slate-50 transition")
+              td(class="py-3") #{recordedAt ? recordedAt.toLocaleDateString() : '—'}
+              td(class="py-3") #{record.position !== undefined ? record.position : '—'}
+              td(class="py-3")
+                span(class=["inline-flex items-center gap-1", change > 0 ? 'text-emerald-500' : change < 0 ? 'text-red-500' : 'text-slate-500'])
+                  if change > 0
+                    | ▲ +#{change}
+                  else if change < 0
+                    | ▼ #{change}
+                  else
+                    | •
+              td(class="py-3") #{record.visibilityScore !== undefined && record.visibilityScore !== null ? Math.round(record.visibilityScore) : '—'}
+              td(class="py-3")
+                if record.url
+                  a(href=record.url target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-700 line-clamp-1") #{record.url}
+                else
+                  span(class="text-slate-400") —
+    else
+      p(class="text-sm text-slate-500") No rank history yet. Refresh to capture the latest positions.
+
+  script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js")
+  script.
+    (function () {
+      const ctx = document.getElementById('rankChart');
+      const raw = #{JSON.stringify(records.map((record) => ({ recordedAt: record.recordedAt, position: record.position }))) || '[]'};
+      if (!ctx || !raw.length) return;
+      const labels = raw.map((entry) => {
+        const date = entry.recordedAt ? new Date(entry.recordedAt) : null;
+        return date ? date.toLocaleDateString() : '';
+      }).reverse();
+      const positions = raw.map((entry) => (entry.position !== undefined && entry.position !== null ? entry.position : null)).reverse();
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Position (lower is better)',
+            data: positions,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.10)',
+            tension: 0.35,
+            fill: true,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              reverse: true,
+              beginAtZero: true,
+              ticks: { stepSize: 2 }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    })();
+

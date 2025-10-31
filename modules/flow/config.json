@@ -14,12 +14,12 @@
     },
     "links": [
         {
-            "name": "Create",
-            "url": "/create"
+            "name": "Posts",
+            "url": "/posts"
         },
         {
-            "name": "Browse",
-            "url": "/browse"
+            "name": "Ads",
+            "url": "/ads"
         }
     ]
 }

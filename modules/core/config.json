@@ -1,15 +1,13 @@
 {
-    "name": "CORE",
-    "icon": "circle-dot-dashed",
-    "description": "Core module for the management of the application",
-    "pricing": {
-        "monthly": {
-            "amount": 12900,
-            "currency": "USD"
-        },
-        "yearly": {
-            "amount": 129000,
-            "currency": "USD"
-        }
-    }
+  "name": "CORE",
+  "icon": "radar",
+  "description": "AI-assisted marketing intelligence for adaptive media planning.",
+  "links": [
+    { "name": "Channels", "url": "/channels" },
+    { "name": "Budgeting", "url": "/budgeting" }
+  ],
+  "pricing": {
+    "monthly": { "amount": 210, "currency": "USD" },
+    "yearly": { "amount": 2100, "currency": "USD" }
+  }
 }

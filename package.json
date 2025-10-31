@@ -7,7 +7,8 @@
     "build-css": "tailwindcss -i ./public/stylesheets/style.css -o ./public/stylesheets/dist.css --watch",
     "build-css-prod": "tailwindcss -i ./public/stylesheets/style.css -o ./public/stylesheets/dist.css --minify",
     "init-db": "node scripts/init-db.js",
-    "reset-db": "node scripts/reset-db.js"
+    "reset-db": "node scripts/reset-db.js",
+    "update-db": "node scripts/update-db.js"
   },
   "dependencies": {
     "axios": "^1.4.0",

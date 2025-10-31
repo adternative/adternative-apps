@@ -8,6 +8,14 @@ class Dashboard {
     this.init();
   }
 
+  buildAuthHeaders(base = {}) {
+    const headers = { ...base };
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    return headers;
+  }
+
   init() {
     this.setupEventListeners();
     this.loadEntities();
@@ -51,10 +59,8 @@ class Dashboard {
   async loadEntities() {
     try {
       const response = await fetch('/entities', {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: this.buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'same-origin'
       });
 
       if (response.ok) {
@@ -72,10 +78,8 @@ class Dashboard {
   async loadCurrentEntity() {
     try {
       const response = await fetch('/entities/current', {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: this.buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'same-origin'
       });
 
       if (response.ok) {
@@ -156,10 +160,8 @@ class Dashboard {
     try {
       const response = await fetch('/entities/switch', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: this.buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'same-origin',
         body: JSON.stringify({ entityId })
       });
 
@@ -206,10 +208,8 @@ class Dashboard {
     try {
       const response = await fetch('/entities', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: this.buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'same-origin',
         body: JSON.stringify(entityData)
       });
 
@@ -234,10 +234,8 @@ class Dashboard {
       // Call logout endpoint to clear session
       await fetch('/auth/logout', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: this.buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'same-origin'
       });
     } catch (error) {
       console.error('Logout error:', error);

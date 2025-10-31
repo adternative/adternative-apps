@@ -6,6 +6,7 @@ const { Entity, ModuleSubscription } = require('../models');
 // Constants
 const ACTIVE_SUBSCRIPTION_STATUSES = ModuleSubscription.ACTIVE_STATUSES || ['active', 'trialing'];
 const GRACE_PERIOD_MS = (subscriptionPlans?.gracePeriodDays || 0) * 24 * 60 * 60 * 1000;
+const DEFAULT_FREE_MODULES = new Set(['core']);
 
 // Normalize module key from path or canonical name
 const normalizeKey = (key) => String(key || '').trim().toLowerCase();
@@ -51,7 +52,7 @@ const loadEntitySubscriptionKeys = async (entityId, req) => {
 
 // Combine legacy allowlists with active subscription keys
 const mergeAllowedKeys = (allowedKeys = [], subscriptionKeys = []) => {
-  const merged = new Set();
+  const merged = new Set(DEFAULT_FREE_MODULES);
   allowedKeys.forEach((key) => merged.add(normalizeKey(key)));
   subscriptionKeys.forEach((key) => merged.add(normalizeKey(key)));
   return Array.from(merged);
@@ -135,7 +136,7 @@ const withAvailableApps = async (req, res, next) => {
     if (!entity || allowedKeys.length === 0) {
       req.availableApps = allApps.map((app) => ({
         ...app,
-        isAccessible: false
+        isAccessible: DEFAULT_FREE_MODULES.has(resolveModuleKeyFromPath(app.path))
       }));
       return next();
     }
@@ -143,7 +144,7 @@ const withAvailableApps = async (req, res, next) => {
     const filtered = allApps.filter((app) => {
       const keyFromPath = resolveModuleKeyFromPath(app.path);
       const keyFromName = normalizeKey(app.name);
-      return allowedKeys.includes(keyFromPath) || allowedKeys.includes(keyFromName);
+      return allowedKeys.includes(keyFromPath) || allowedKeys.includes(keyFromName) || DEFAULT_FREE_MODULES.has(keyFromPath) || DEFAULT_FREE_MODULES.has(keyFromName);
     }).map((app) => ({
       ...app,
       isAccessible: true
@@ -164,6 +165,10 @@ const requireAppAccess = (appKey) => {
   const requiredKey = normalizeKey(appKey);
   return async (req, res, next) => {
     try {
+      if (DEFAULT_FREE_MODULES.has(requiredKey)) {
+        return next();
+      }
+
       // Admin bypass
       if (req.user && req.user.role === 'admin') {
         return next();

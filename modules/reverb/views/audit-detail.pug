@@ -1,0 +1,83 @@
+extends ../../../views/layout
+
+block content
+  - const auditRecord = audit || null;
+  - const siteInfo = site || null;
+  - const completedAt = auditRecord && auditRecord.completedAt ? new Date(auditRecord.completedAt) : null;
+  - const startedAt = auditRecord && auditRecord.startedAt ? new Date(auditRecord.startedAt) : null;
+  - const healthScore = auditRecord && typeof auditRecord.technicalHealthScore === 'number' ? Math.round(auditRecord.technicalHealthScore) : null;
+
+  div(class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4")
+    div
+      h2(class="text-3xl font-semibold text-slate-900 tracking-tight") Audit ##{auditRecord ? auditRecord.id : ''}
+      if siteInfo
+        p(class="text-slate-500 mt-2") Latest crawl for #{siteInfo.domain}
+    a(href="/reverb/site-health" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-blue-500 hover:text-blue-600 transition")
+      i(data-lucide="arrow-left" class="w-4 h-4")
+      | Back to site health
+
+  div(class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-10")
+    div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
+      span(class="text-xs uppercase font-semibold tracking-wide text-slate-500") Technical score
+      h3(class="text-3xl font-bold text-slate-900 mt-3") #{healthScore !== null ? healthScore : '—'}
+      p(class="text-sm text-slate-500 mt-3") Weighted technical health for this audit.
+
+    div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
+      span(class="text-xs uppercase font-semibold tracking-wide text-slate-500") Status
+      h3(class="text-3xl font-bold text-slate-900 mt-3 capitalize") #{auditRecord ? auditRecord.status : 'unknown'}
+      p(class="text-sm text-slate-500 mt-3") Completed #{completedAt ? completedAt.toLocaleString() : 'pending'}
+
+    div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
+      span(class="text-xs uppercase font-semibold tracking-wide text-slate-500") Started
+      h3(class="text-lg font-medium text-slate-900 mt-3") #{startedAt ? startedAt.toLocaleString() : '—'}
+      p(class="text-sm text-slate-500 mt-3") #{siteInfo ? siteInfo.domain : ''}
+
+    div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
+      span(class="text-xs uppercase font-semibold tracking-wide text-slate-500") Pages audited
+      h3(class="text-3xl font-bold text-slate-900 mt-3") #{auditRecord && auditRecord.pages ? auditRecord.pages.length : 0}
+      p(class="text-sm text-slate-500 mt-3") Includes broken links and redirect checks.
+
+  if auditRecord && auditRecord.issues
+    if (auditRecord.issues.critical && auditRecord.issues.critical.length)
+      div(class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6")
+        h3(class="text-sm font-semibold text-red-600 uppercase tracking-wide mb-3") Critical issues
+        ul(class="space-y-2 text-sm text-red-700")
+          each note in auditRecord.issues.critical
+            li(class="flex gap-2")
+              span(class="mt-1") •
+              span #{note}
+    if (auditRecord.issues.recommendations && auditRecord.issues.recommendations.length)
+      div(class="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6")
+        h3(class="text-sm font-semibold text-blue-600 uppercase tracking-wide mb-3") Recommendations
+        ul(class="space-y-2 text-sm text-blue-700")
+          each note in auditRecord.issues.recommendations
+            li(class="flex gap-2")
+              span(class="mt-1") •
+              span #{note}
+
+  div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
+    h3(class="text-lg font-semibold text-slate-900 mb-4") Page findings
+    if auditRecord && auditRecord.pages && auditRecord.pages.length
+      table(class="w-full text-sm text-left text-slate-600 border-t border-slate-200")
+        thead
+          tr(class="text-xs uppercase text-slate-500 tracking-wide")
+            th(class="py-3") URL
+            th(class="py-3") Status
+            th(class="py-3") Lighthouse
+            th(class="py-3") Schema
+            th(class="py-3") Notes
+        tbody
+          each page in auditRecord.pages
+            - const statusCode = page.statusCode !== undefined && page.statusCode !== null ? page.statusCode : '—';
+            - const lighthouse = page.lighthouseMetrics && page.lighthouseMetrics.performance ? Math.round(page.lighthouseMetrics.performance * 100) : '—';
+            - const schemaTypes = page.schema && Array.isArray(page.schema) ? page.schema.join(', ') : (page.schema && page.schema.type ? page.schema.type : '—');
+            tr(class="border-t border-slate-200 hover:bg-slate-50 transition")
+              td(class="py-3")
+                a(href=page.url target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-700") #{page.url}
+              td(class="py-3") #{statusCode}
+              td(class="py-3") #{lighthouse}
+              td(class="py-3") #{schemaTypes}
+              td(class="py-3 text-slate-500") #{page.notes || '—'}
+    else
+      p(class="text-sm text-slate-500") No page-level records captured for this audit.
+

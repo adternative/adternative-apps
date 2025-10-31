@@ -5,7 +5,9 @@ const { User } = require('../models');
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const headerToken = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const cookieToken = req.cookies && req.cookies.authToken ? req.cookies.authToken : null;
+    const token = headerToken || cookieToken;
     const isHtmlRequest = req.headers.accept && req.headers.accept.includes('text/html');
 
     // Check for session-based authentication first (for HTML requests)
@@ -56,6 +58,10 @@ const authenticateToken = async (req, res, next) => {
     }
 
     req.user = user;
+    // Ensure downstream middlewares can reuse the bearer token when it originated from cookies
+    if (!authHeader && cookieToken) {
+      req.headers.authorization = `Bearer ${cookieToken}`;
+    }
     next();
   } catch (error) {
     const isHtmlRequest = req.headers.accept && req.headers.accept.includes('text/html');
@@ -166,7 +172,9 @@ const requireEntityOwnership = async (req, res, next) => {
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const headerToken = authHeader && authHeader.split(' ')[1];
+    const cookieToken = req.cookies && req.cookies.authToken ? req.cookies.authToken : null;
+    const token = headerToken || cookieToken;
 
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);

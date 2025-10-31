@@ -6,6 +6,14 @@ const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const { getAvailableApps } = require('../utils/appLoader');
 const { withAvailableApps } = require('../middleware/paywall');
 
+const AUTH_COOKIE_NAME = 'authToken';
+const AUTH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+};
+
 /* GET home page - requires authentication */
 router.get('/', authenticateToken, withAvailableApps, function(req, res, next) {
   // Render dashboard as the home page
@@ -76,6 +84,8 @@ router.post('/register', async (req, res) => {
 
     // Store user in session for HTML requests
     req.session.userId = user.id;
+
+    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
 
     res.status(201).json({
       success: true,
@@ -154,6 +164,8 @@ router.post('/login', async (req, res) => {
       }
     }
 
+    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -173,6 +185,79 @@ router.post('/login', async (req, res) => {
       error: 'Login failed',
       code: 'LOGIN_ERROR'
     });
+  }
+});
+
+// Create entity via HTML form submission
+router.post('/entity', authenticateToken, async (req, res) => {
+  const prefersJson = req.accepts(['html', 'json']) === 'json';
+
+  try {
+    if (!req.user) {
+      if (prefersJson) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+          code: 'AUTH_REQUIRED'
+        });
+      }
+      return res.redirect('/login');
+    }
+
+    const { name, industry, description, website } = req.body || {};
+
+    const trimmedName = typeof name === 'string' ? name.trim() : '';
+    const trimmedIndustry = typeof industry === 'string' ? industry.trim() : '';
+    const sanitizedDescription = typeof description === 'string' && description.trim() ? description.trim() : null;
+    const sanitizedWebsite = typeof website === 'string' && website.trim() ? website.trim() : null;
+
+    if (!trimmedName || !trimmedIndustry) {
+      if (prefersJson) {
+        return res.status(400).json({
+          success: false,
+          error: 'Name and industry are required',
+          code: 'MISSING_REQUIRED_FIELDS'
+        });
+      }
+      return res.redirect('/?openEntityModal=1&entityError=missing_fields');
+    }
+
+    const entity = await Entity.create({
+      name: trimmedName,
+      industry: trimmedIndustry,
+      description: sanitizedDescription,
+      website: sanitizedWebsite,
+      user_id: req.user.id
+    });
+
+    req.session.currentEntityId = entity.id;
+
+    if (prefersJson) {
+      return res.status(201).json({
+        success: true,
+        entity: {
+          id: entity.id,
+          name: entity.name,
+          industry: entity.industry,
+          description: entity.description,
+          website: entity.website,
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt
+        }
+      });
+    }
+
+    return res.redirect('/');
+  } catch (error) {
+    console.error('Create entity via form error:', error);
+    if (prefersJson) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to create entity',
+        code: 'CREATE_ENTITY_ERROR'
+      });
+    }
+    return res.redirect('/?openEntityModal=1&entityError=server_error');
   }
 });
 
@@ -309,6 +394,7 @@ router.post('/logout', (req, res) => {
     }
     
     res.clearCookie('connect.sid');
+    res.clearCookie(AUTH_COOKIE_NAME, AUTH_COOKIE_OPTIONS);
     res.json({
       success: true,
       message: 'Logged out successfully'
