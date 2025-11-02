@@ -1,77 +1,66 @@
 const sequelize = require('../../../config/database');
 
-const ReverbSite = require('./Site')(sequelize);
-const ReverbSiteAudit = require('./SiteAudit')(sequelize);
-const ReverbPageInsight = require('./PageInsight')(sequelize);
-const ReverbKeyword = require('./Keyword')(sequelize);
-const ReverbKeywordSnapshot = require('./KeywordSnapshot')(sequelize);
-const ReverbSerpSnapshot = require('./SerpSnapshot')(sequelize);
-const ReverbSerpResult = require('./SerpResult')(sequelize);
-const ReverbBacklink = require('./Backlink')(sequelize);
-const ReverbBacklinkSnapshot = require('./BacklinkSnapshot')(sequelize);
-const ReverbCompetitor = require('./Competitor')(sequelize);
-const ReverbCompetitorGap = require('./CompetitorGap')(sequelize);
-const ReverbRankRecord = require('./RankRecord')(sequelize);
-const ReverbInsightEvent = require('./InsightEvent')(sequelize);
-const ReverbAiInsight = require('./AiInsight')(sequelize);
-
-const SiteAudit = ReverbSiteAudit;
-const PageInsight = ReverbPageInsight;
-const Keyword = ReverbKeyword;
-const KeywordSnapshot = ReverbKeywordSnapshot;
-const SerpSnapshot = ReverbSerpSnapshot;
-const SerpResult = ReverbSerpResult;
-const Backlink = ReverbBacklink;
-const BacklinkSnapshot = ReverbBacklinkSnapshot;
-const Competitor = ReverbCompetitor;
-const CompetitorGap = ReverbCompetitorGap;
-const RankRecord = ReverbRankRecord;
-const InsightEvent = ReverbInsightEvent;
-const AiInsight = ReverbAiInsight;
+const Workspace = require('./Workspace')(sequelize);
+const KeywordInsight = require('./KeywordInsight')(sequelize);
+const PageAudit = require('./PageAudit')(sequelize);
+const TechnicalIssue = require('./TechnicalIssue')(sequelize);
+const Backlink = require('./Backlink')(sequelize);
+const RankSnapshot = require('./RankSnapshot')(sequelize);
 
 let associationsApplied = false;
 
 const applyAssociations = () => {
   if (associationsApplied) return;
 
-  ReverbSite.hasMany(SiteAudit, { foreignKey: 'site_id', as: 'audits' });
-  SiteAudit.belongsTo(ReverbSite, { foreignKey: 'site_id', as: 'site' });
+  Workspace.hasMany(KeywordInsight, {
+    foreignKey: 'workspace_id',
+    as: 'keywords',
+    onDelete: 'CASCADE'
+  });
+  KeywordInsight.belongsTo(Workspace, {
+    foreignKey: 'workspace_id',
+    as: 'workspace'
+  });
 
-  SiteAudit.hasMany(PageInsight, { foreignKey: 'audit_id', as: 'pages' });
-  PageInsight.belongsTo(SiteAudit, { foreignKey: 'audit_id', as: 'audit' });
+  Workspace.hasMany(PageAudit, {
+    foreignKey: 'workspace_id',
+    as: 'pageAudits',
+    onDelete: 'CASCADE'
+  });
+  PageAudit.belongsTo(Workspace, {
+    foreignKey: 'workspace_id',
+    as: 'workspace'
+  });
 
-  ReverbSite.hasMany(Keyword, { foreignKey: 'site_id', as: 'keywords' });
-  Keyword.belongsTo(ReverbSite, { foreignKey: 'site_id', as: 'site' });
+  Workspace.hasMany(TechnicalIssue, {
+    foreignKey: 'workspace_id',
+    as: 'technicalIssues',
+    onDelete: 'CASCADE'
+  });
+  TechnicalIssue.belongsTo(Workspace, {
+    foreignKey: 'workspace_id',
+    as: 'workspace'
+  });
 
-  Keyword.hasMany(KeywordSnapshot, { foreignKey: 'keyword_id', as: 'snapshots' });
-  KeywordSnapshot.belongsTo(Keyword, { foreignKey: 'keyword_id', as: 'keyword' });
+  Workspace.hasMany(Backlink, {
+    foreignKey: 'workspace_id',
+    as: 'backlinks',
+    onDelete: 'CASCADE'
+  });
+  Backlink.belongsTo(Workspace, {
+    foreignKey: 'workspace_id',
+    as: 'workspace'
+  });
 
-  Keyword.hasMany(SerpSnapshot, { foreignKey: 'keyword_id', as: 'serpSnapshots' });
-  SerpSnapshot.belongsTo(Keyword, { foreignKey: 'keyword_id', as: 'keyword' });
-
-  SerpSnapshot.hasMany(SerpResult, { foreignKey: 'serp_snapshot_id', as: 'results' });
-  SerpResult.belongsTo(SerpSnapshot, { foreignKey: 'serp_snapshot_id', as: 'snapshot' });
-
-  ReverbSite.hasMany(Backlink, { foreignKey: 'site_id', as: 'backlinks' });
-  Backlink.belongsTo(ReverbSite, { foreignKey: 'site_id', as: 'site' });
-
-  Backlink.hasMany(BacklinkSnapshot, { foreignKey: 'backlink_id', as: 'snapshots' });
-  BacklinkSnapshot.belongsTo(Backlink, { foreignKey: 'backlink_id', as: 'backlink' });
-
-  ReverbSite.hasMany(Competitor, { foreignKey: 'site_id', as: 'competitors' });
-  Competitor.belongsTo(ReverbSite, { foreignKey: 'site_id', as: 'site' });
-
-  Competitor.hasMany(CompetitorGap, { foreignKey: 'competitor_id', as: 'gaps' });
-  CompetitorGap.belongsTo(Competitor, { foreignKey: 'competitor_id', as: 'competitor' });
-
-  Keyword.hasMany(RankRecord, { foreignKey: 'keyword_id', as: 'rankHistory' });
-  RankRecord.belongsTo(Keyword, { foreignKey: 'keyword_id', as: 'keyword' });
-
-  ReverbSite.hasMany(InsightEvent, { foreignKey: 'site_id', as: 'events' });
-  InsightEvent.belongsTo(ReverbSite, { foreignKey: 'site_id', as: 'site' });
-
-  ReverbSite.hasMany(AiInsight, { foreignKey: 'site_id', as: 'aiInsights' });
-  AiInsight.belongsTo(ReverbSite, { foreignKey: 'site_id', as: 'site' });
+  Workspace.hasMany(RankSnapshot, {
+    foreignKey: 'workspace_id',
+    as: 'rankSnapshots',
+    onDelete: 'CASCADE'
+  });
+  RankSnapshot.belongsTo(Workspace, {
+    foreignKey: 'workspace_id',
+    as: 'workspace'
+  });
 
   associationsApplied = true;
 };
@@ -79,51 +68,20 @@ const applyAssociations = () => {
 applyAssociations();
 
 const models = {
-  ReverbSite,
-  SiteAudit,
-  PageInsight,
-  Keyword,
-  KeywordSnapshot,
-  SerpSnapshot,
-  SerpResult,
+  Workspace,
+  KeywordInsight,
+  PageAudit,
+  TechnicalIssue,
   Backlink,
-  BacklinkSnapshot,
-  Competitor,
-  CompetitorGap,
-  RankRecord,
-  InsightEvent,
-  AiInsight
+  RankSnapshot
 };
 
 module.exports = {
   sequelize,
-  ReverbSite,
-  ReverbSiteAudit,
-  ReverbPageInsight,
-  ReverbKeyword,
-  ReverbKeywordSnapshot,
-  ReverbSerpSnapshot,
-  ReverbSerpResult,
-  ReverbBacklink,
-  ReverbBacklinkSnapshot,
-  ReverbCompetitor,
-  ReverbCompetitorGap,
-  ReverbRankRecord,
-  ReverbInsightEvent,
-  ReverbAiInsight,
-  SiteAudit,
-  PageInsight,
-  Keyword,
-  KeywordSnapshot,
-  SerpSnapshot,
-  SerpResult,
-  Backlink,
-  BacklinkSnapshot,
-  Competitor,
-  CompetitorGap,
-  RankRecord,
-  InsightEvent,
-  AiInsight,
+  ...models,
   models,
   applyAssociations
 };
+
+
+

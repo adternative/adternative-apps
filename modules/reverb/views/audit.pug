@@ -1,0 +1,67 @@
+extends ../../../views/layout
+
+
+block content
+  div(class="space-y-8")
+    div(class="space-y-2")
+      h1(class="text-3xl font-semibold text-gray-900") On-Page SEO Audit
+      p(class="text-gray-600") Review crawl health, Lighthouse signals, and prioritized remediation actions.
+
+
+    if summary && summary.totalPages
+      div(class="grid grid-cols-1 md:grid-cols-3 gap-4")
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Pages crawled
+          p(class="text-3xl font-semibold text-gray-900") #{summary.totalPages}
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Avg score
+          p(class="text-3xl font-semibold text-emerald-600") #{summary.averageScore}
+        if summary.bestPage
+          div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5")
+            p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Best page
+            p(class="text-sm font-semibold text-purple-700 truncate") #{summary.bestPage.url}
+
+    div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 overflow-hidden")
+      table(class="min-w-full text-sm text-gray-700")
+        thead(class="bg-gray-50 text-gray-500 uppercase text-xs")
+          tr
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") URL
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Score
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Status
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Lighthouse
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Issues
+        tbody(class="divide-y divide-gray-100 bg-white")
+          if audits && audits.length
+            each page in audits
+              tr(class="hover:bg-gray-50 transition align-top")
+                td(class="px-6 py-4")
+                  a(href=page.url target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:text-purple-500 break-words") #{page.url}
+                td(class="px-6 py-4")
+                  span(class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold #{page.auditScore >= 85 ? 'bg-emerald-50 text-emerald-700' : page.auditScore >= 70 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}") #{page.auditScore}
+                td(class="px-6 py-4 text-gray-600") #{page.statusCode || '—'}
+                td(class="px-6 py-4")
+                  if page.lighthouseScore
+                    div(class="grid grid-cols-2 gap-2 text-[11px] text-gray-600")
+                      span Perf #{page.lighthouseScore.performance}
+                      span SEO #{page.lighthouseScore.seo}
+                      span A11y #{page.lighthouseScore.accessibility}
+                      span Best #{page.lighthouseScore.bestPractices}
+                  else
+                    span(class="text-gray-400") —
+                td(class="px-6 py-4 space-y-2")
+                  if page.issues && page.issues.length
+                    each issue in page.issues.slice(0, 3)
+                      div(class="rounded-2xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-700")
+                        p(class="font-semibold capitalize") #{issue.title}
+                        if issue.recommendation
+                          p(class="text-[11px] text-rose-600") #{issue.recommendation}
+                    if page.issues.length > 3
+                      span(class="inline-flex items-center text-[11px] text-gray-500") +#{page.issues.length - 3} more
+                  else
+                    span(class="text-xs text-gray-400") No issues
+          else
+            tr
+              td(colspan="5" class="px-6 py-6 text-center text-sm text-gray-500") No audited pages available. Run a refresh first.
+
+
+

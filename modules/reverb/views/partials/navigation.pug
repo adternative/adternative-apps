@@ -1,0 +1,37 @@
+mixin reverbNav(active)
+  - const navLinks = [
+  -   { name: 'Overview', url: '/reverb', key: 'overview' },
+  -   { name: 'Keyword Intelligence', url: '/reverb/keywords', key: 'keywords' },
+  -   { name: 'On-Page Audit', url: '/reverb/audit', key: 'audit' },
+  -   { name: 'Technical Crawler', url: '/reverb/technical', key: 'technical' },
+  -   { name: 'Backlink Analysis', url: '/reverb/backlinks', key: 'backlinks' },
+  -   { name: 'Rank Tracking', url: '/reverb/ranks', key: 'ranks' }
+  - ];
+  nav(class="flex flex-wrap gap-2 mb-4")
+    each link in navLinks
+      - const isActive = active === link.key;
+      a(
+        href=link.url
+        class=[
+          "inline-flex items-center px-4 py-2 rounded-2xl text-sm font-medium transition",
+          isActive ? "bg-purple-600 text-white shadow-sm" : "bg-white text-purple-700 hover:bg-purple-50 border border-gray-200"
+        ].join(' ')
+        aria-current=isActive ? "page" : false
+      )
+        | #{link.name}
+
+mixin reverbWebsiteNotice()
+  if missingWebsite
+    - const entityLabel = currentEntity && currentEntity.name ? currentEntity.name : 'this entity';
+    div(class="rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-800 shadow-sm space-y-1")
+      p(class="text-sm font-semibold") Website required to activate Reverb
+      p(class="text-sm") Add a valid website URL to #{entityLabel} to enable Reverb intelligence, then refresh the page.
+
+mixin reverbEntityNotice()
+  if noEntity
+    div(class="rounded-3xl border border-blue-200 bg-blue-50 px-5 py-4 text-blue-800 shadow-sm space-y-1")
+      p(class="text-sm font-semibold") Select an entity to use Reverb
+      p(class="text-sm") Create or select an entity from the Entities page to get started.
+
+
+

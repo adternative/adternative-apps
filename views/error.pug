@@ -7,8 +7,7 @@ html(lang="en")
     link(rel='stylesheet', href='/stylesheets/dist.css')
   body(class="h-screen bg-purple-950 flex items-center justify-center")
     div(class="rounded-2xl p-8 w-1/2 lg:w-full")
-      if error.status
-        h1(class="text-3xl font-bold text-white mb-4") #{error.status}: #{message}
+      h1(class="text-3xl font-bold text-white mb-4") #{(error && error.status) || (typeof status !== 'undefined' ? status : 500)}: #{message || 'An unexpected error occurred'}
       if error.stack
         pre(class="bg-black p-4 rounded-3xl overflow-auto text-sm text-teal-400")= error.stack
       div(class="mt-6")

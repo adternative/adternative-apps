@@ -1,0 +1,77 @@
+extends ../../../views/layout
+
+block content
+  div(class="space-y-8")
+    div(class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between")
+      div
+        h1(class="text-3xl font-semibold text-gray-900") Technical Crawler
+        p(class="text-gray-600") Diagnose infrastructure, crawlability, and indexation blockers.
+      form(method="get" action="/reverb/technical" class="flex items-center gap-3")
+        label(for="reverb-severity" class="text-xs uppercase tracking-[0.3em] text-gray-500") Severity
+        select#reverb-severity(name="severity" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500")
+          option(value="" selected=!severityFilter) All severities
+          option(value="critical" selected=severityFilter === 'critical') Critical
+          option(value="high" selected=severityFilter === 'high') High
+          option(value="medium" selected=severityFilter === 'medium') Medium
+          option(value="low" selected=severityFilter === 'low') Low
+        button(type="submit" class="inline-flex items-center rounded-2xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2") Filter
+
+    if summary
+      div(class="grid grid-cols-1 md:grid-cols-3 gap-4")
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Total issues
+          p(class="text-3xl font-semibold text-rose-600") #{summary.totalIssues}
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5 space-y-1")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Severity mix
+          if summary.bySeverity && Object.keys(summary.bySeverity).length
+            each count, level in summary.bySeverity
+              div(class="flex items-center justify-between text-sm text-gray-600")
+                span(class="capitalize") #{level}
+                span(class="font-medium text-gray-900") #{count}
+          else
+            p(class="text-sm text-gray-400") No issues logged.
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5 space-y-1")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Categories
+          if summary.byCategory && Object.keys(summary.byCategory).length
+            each count, category in summary.byCategory
+              div(class="flex items-center justify-between text-sm text-gray-600")
+                span(class="capitalize") #{category}
+                span(class="font-medium text-gray-900") #{count}
+          else
+            p(class="text-sm text-gray-400") No findings yet.
+
+    div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 overflow-hidden")
+      table(class="min-w-full text-sm text-gray-700")
+        thead(class="bg-gray-50 text-gray-500 uppercase text-xs")
+          tr
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Severity
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Category
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Description
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") URL
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Recommendations
+        tbody(class="divide-y divide-gray-100 bg-white")
+          if issues && issues.length
+            each issue in issues
+              tr(class="hover:bg-gray-50 transition align-top")
+                td(class="px-6 py-4")
+                  span(class=`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${issue.severity === 'critical' ? 'bg-rose-600 text-white' : issue.severity === 'high' ? 'bg-rose-100 text-rose-700' : issue.severity === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`) #{issue.severity}
+                td(class="px-6 py-4 capitalize") #{issue.category}
+                td(class="px-6 py-4 text-sm text-gray-800") #{issue.description}
+                td(class="px-6 py-4")
+                  if issue.url
+                    a(href=issue.url target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:text-purple-500 break-words") #{issue.url}
+                  else
+                    span(class="text-gray-400") —
+                td(class="px-6 py-4 text-xs text-gray-600 space-y-1")
+                  if issue.context && issue.context.recommendedAction
+                    p #{issue.context.recommendedAction}
+                  if issue.context && issue.context.occurrences
+                    p Occurrences: #{issue.context.occurrences}
+                  if issue.context && issue.context.metric != null
+                    p Metric: #{issue.context.metric}
+          else
+            tr
+              td(colspan="5" class="px-6 py-6 text-center text-sm text-gray-500") No technical issues detected for the selected severity.
+
+
+

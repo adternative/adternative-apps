@@ -1,6 +1,6 @@
 {
   "name": "CORE",
-  "icon": "radar",
+  "icon": "circle-dot-dashed",
   "description": "AI-assisted marketing intelligence for adaptive media planning.",
   "links": [
     { "name": "Channels", "url": "/channels" },

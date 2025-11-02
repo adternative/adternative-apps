@@ -1,24 +1,188 @@
 extends ../../../views/layout
 
 block content
-  div(class="mb-8")
-    h2(class="text-2xl font-bold text-gray-900") ECHO
-    p(class="text-gray-600") Monitoring and alerting system
+  - const discoveryData = (typeof discovery === 'object' && discovery) ? discovery : {};
+  - const influencers = Array.isArray(discoveryData.influencers) ? discoveryData.influencers : [];
+  - const topInfluencers = influencers.slice(0, 5);
+  - const filtersData = filters || {};
+  - const entityName = currentEntity && currentEntity.name ? currentEntity.name : 'your entity';
+  - const entityIndustry = currentEntity && currentEntity.industry ? currentEntity.industry : 'your industry';
+  - const activeSection = section || 'discovery';
 
-  div(class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6")
-    div(class="bg-white rounded-lg shadow-sm border border-gray-200 p-6")
-      h3(class="text-lg font-medium text-gray-900 mb-4") Monitoring
-      p(class="text-gray-600 mb-4") Real-time system monitoring
-      a(href="/echo/monitoring" class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500")
-        i(data-lucide="activity" class="w-4 h-4 mr-2")
-        | View Monitoring
+  div(class="space-y-8")
+    div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-8")
+      div(class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between")
+        div(class="space-y-3")
+          div(class="flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-purple-700")
+            span(class="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-700")
+              i(data-lucide="waves" class="w-3 h-3 mr-1")
+              | Echo Intelligence
+            span(class=["inline-flex items-center px-3 py-1 rounded-full", activeSection === 'discovery' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500']) #{influencers.length ? influencers.length + ' candidates' : 'Scanning'}
+          h1(class="text-3xl font-semibold text-gray-900") Influencer Discovery
+          p(class="text-gray-600 max-w-2xl") Tailored influencer recommendations for #{entityName}, tuned to #{entityIndustry} goals and target audience.
+        div(class="bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-sm text-gray-600 max-w-md")
+          p(class="uppercase text-[10px] tracking-[0.3em] text-gray-400 mb-2") AI Summary
+          if ai && ai.summary
+            p(class="leading-relaxed text-gray-700") #{ai.summary}
+          else
+            p(class="text-gray-500") Discovery results will appear once data is synced.
 
-    div(class="bg-white rounded-lg shadow-sm border border-gray-200 p-6")
-      h3(class="text-lg font-medium text-gray-900 mb-4") Alerts
-      p(class="text-gray-600 mb-4") Configure alert notifications
-      div(class="text-sm text-gray-500") Coming soon...
+    if feedback && feedback.status
+      div(class=[
+        'rounded-2xl px-4 py-3 border text-sm',
+        feedback.status === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+      ])
+        span #{feedback.message || (feedback.status === 'error' ? 'Unable to complete the requested action.' : 'Action completed successfully.')}
 
-    div(class="bg-white rounded-lg shadow-sm border border-gray-200 p-6")
-      h3(class="text-lg font-medium text-gray-900 mb-4") Reports
-      p(class="text-gray-600 mb-4") Generate monitoring reports
-      div(class="text-sm text-gray-500") Coming soon...
+    form#echo-filter-form(action="/echo/discovery" method="post" class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4")
+      div(class="space-y-2")
+        label(for="echo-region" class="text-xs uppercase tracking-wide text-gray-500") Region
+        input#echo-region(type="text" name="region" value=filtersData.region placeholder="e.g. United States" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+      div(class="space-y-2")
+        label(for="echo-language" class="text-xs uppercase tracking-wide text-gray-500") Language
+        input#echo-language(type="text" name="language" value=filtersData.language placeholder="e.g. en" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+      div(class="space-y-2")
+        label(for="echo-min-engagement" class="text-xs uppercase tracking-wide text-gray-500") Min Engagement (%)
+        - const minEngagementValue = typeof filtersData.minEngagement === 'number' ? (filtersData.minEngagement * 100).toFixed(1) : '';
+        input#echo-min-engagement(type="number" step="0.1" min="0" name="minEngagement" value=minEngagementValue placeholder="e.g. 3" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+      div(class="space-y-2")
+        label(for="echo-platforms" class="text-xs uppercase tracking-wide text-gray-500") Priority Platforms
+        - const priorityPlatformsValue = Array.isArray(filtersData.priorityPlatforms) ? filtersData.priorityPlatforms.join(', ') : '';
+        input#echo-platforms(type="text" name="platforms" value=priorityPlatformsValue placeholder="instagram, tiktok" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+      div(class="md:col-span-4 flex items-center justify-end gap-3 pt-2")
+        input(type="hidden" name="section" value="discovery")
+        button(type="button" id="echo-reset" class="text-sm text-gray-500 hover:text-gray-700 transition" value="reset") Reset
+        button(type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium shadow-sm hover:bg-purple-700 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500") Refresh Recommendations
+
+    div(class="grid grid-cols-1 xl:grid-cols-3 gap-6")
+      div(class="xl:col-span-2 bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 overflow-hidden")
+        div(class="flex items-center justify-between px-6 py-4 border-b border-gray-200")
+          h2(class="text-lg font-semibold text-gray-900") Influencer Fit Leaderboard
+          span(class="text-xs uppercase tracking-wide text-gray-400") #{influencers.length} candidates
+        div(class="overflow-x-auto")
+          table(class="min-w-full divide-y divide-gray-200 text-sm text-gray-700")
+            thead(class="bg-gray-50 text-gray-500")
+              tr
+                th(class="px-6 py-3 text-left font-medium") Influencer
+                th(class="px-6 py-3 text-left font-medium") Platform(s)
+                th(class="px-6 py-3 text-left font-medium") Engagement
+                th(class="px-6 py-3 text-left font-medium") Reach
+                th(class="px-6 py-3 text-right font-medium") Fit Score
+            tbody(class="divide-y divide-gray-100 bg-white")
+              if influencers.length
+                each influencer in influencers
+                  - const engagementRate = typeof influencer.averageEngagementRate === 'number' ? (influencer.averageEngagementRate * 100).toFixed(1) + '%' : '—';
+                  - const reachSource = typeof influencer.estimatedReach === 'number' ? influencer.estimatedReach : (typeof influencer.followersTotal === 'number' ? influencer.followersTotal : 0);
+                  - const reachDisplay = reachSource >= 1000000 ? (reachSource / 1000000).toFixed(1) + 'M' : reachSource >= 1000 ? Math.round(reachSource / 1000) + 'k' : reachSource || '—';
+                  tr(class="hover:bg-gray-50 transition")
+                    td(class="px-6 py-4 align-top")
+                      div(class="flex items-center gap-3")
+                        if influencer.profileImage
+                          img(src=influencer.profileImage alt=influencer.name class="w-10 h-10 aspect-square rounded-full object-cover border border-gray-200")
+                        div
+                          p(class="font-medium text-gray-900") #{influencer.name}
+                          p(class="text-xs text-gray-500") @#{influencer.handle}
+                          if influencer.contactEmail
+                            a(href=`mailto:${influencer.contactEmail}` class="text-[11px] text-purple-600 hover:text-purple-500") Contact
+                    td(class="px-6 py-4 align-top text-gray-600 space-y-1")
+                      if influencer.platforms && influencer.platforms.length
+                        each platform in influencer.platforms
+                          span(class="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium capitalize text-gray-700") #{platform.platform}
+                      else
+                        span(class="text-xs text-gray-400") No data
+                    td(class="px-6 py-4 align-top text-gray-600") #{engagementRate}
+                    td(class="px-6 py-4 align-top text-gray-600") #{reachDisplay}
+                    td(class="px-6 py-4 align-top text-right")
+                      span(class="inline-flex items-center justify-center text-sm font-semibold text-emerald-700 bg-emerald-100 rounded-full px-3 py-1") #{influencer.fitScore}
+              else
+                tr
+                  td(colspan="5" class="px-6 py-6 text-center text-sm text-gray-500") No influencers discovered yet. Adjust your filters and refresh.
+
+      div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 flex flex-col")
+        div(class="px-6 py-4 border-b border-gray-200")
+          h3(class="text-sm font-semibold uppercase tracking-wide text-gray-500") Audience Overlap
+          p(class="text-xs text-gray-400") Visualize demographic alignment for top creators
+        div(class="flex-1 p-6")
+          canvas#echo-audience-chart(height="260" aria-label="Audience overlap radar chart")
+
+    if favorites && favorites.length
+      div#favorites(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200")
+        div(class="px-6 py-4 border-b border-gray-200 flex items-center justify-between")
+          h3(class="text-sm font-semibold uppercase tracking-wide text-gray-500") Favorites
+          span(class="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600") #{favorites.length}
+        div(class="divide-y divide-gray-100")
+          each favorite in favorites
+            - const influencer = favorite.influencer || {};
+            div(class="px-6 py-4 flex items-start justify-between")
+              div
+                p(class="text-gray-900 font-medium") #{influencer.name}
+                p(class="text-xs text-gray-500") Fit score #{Math.round(favorite.score)} • #{favorite.rationale}
+              form(method="post" action=`/echo/favorites/${influencer.id}` class="inline-flex")
+                input(type="hidden" name="isFavorite" value="false")
+                button(type="submit" class="text-xs text-purple-600 hover:text-purple-500") Remove
+
+  script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js")
+  script.
+    (function () {
+      const resetBtn = document.getElementById('echo-reset');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          const form = document.getElementById('echo-filter-form');
+          if (form) {
+            form.reset();
+            form.submit();
+          }
+        });
+      }
+
+      const canvas = document.getElementById('echo-audience-chart');
+      if (!canvas) return;
+
+      const items = !{JSON.stringify(topInfluencers)};
+      if (!Array.isArray(items) || !items.length) return;
+
+      const dimensions = ['18-24', '25-34', '35-44', 'Other'];
+      const colors = ['#8b5cf6', '#0ea5e9', '#f97316'];
+
+      const datasets = items.slice(0, 3).map((influencer, idx) => {
+        const audience = influencer.platforms?.[0]?.audienceDemographics?.age || {};
+        return {
+          label: `@${influencer.handle}`,
+          data: dimensions.map((dimension) => audience[dimension] || audience[dimension.toLowerCase()] || 0),
+          borderColor: colors[idx % colors.length],
+          backgroundColor: colors[idx % colors.length] + '33',
+          fill: true,
+          tension: 0.2
+        };
+      });
+
+      if (!datasets.length) return;
+
+      new Chart(canvas, {
+        type: 'radar',
+        data: {
+          labels: dimensions,
+          datasets
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#64748b' }
+            }
+          },
+          scales: {
+            r: {
+              angleLines: { color: '#e2e8f0' },
+              grid: { color: '#e2e8f0' },
+              pointLabels: { color: '#475569' },
+              suggestedMin: 0,
+              suggestedMax: 80,
+              ticks: { display: false }
+            }
+          }
+        }
+      });
+    })();
+

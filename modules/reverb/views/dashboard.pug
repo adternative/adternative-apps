@@ -1,0 +1,187 @@
+extends ../../../views/layout
+
+
+block content
+  - const lastAnalysis = workspace && workspace.lastAnalysisAt ? new Date(workspace.lastAnalysisAt) : null;
+  - const summary = overview && overview.summary ? overview.summary : {};
+  - const keywordSummary = summary && featureKeys ? summary[featureKeys.KEYWORD] : null;
+  - const auditSummary = summary && featureKeys ? summary[featureKeys.AUDIT] : null;
+  - const technicalSummary = summary && featureKeys ? summary[featureKeys.TECHNICAL] : null;
+  - const backlinkSummary = summary && featureKeys ? summary[featureKeys.BACKLINK] : null;
+  - const rankSummarySafe = rankSummary || (summary && featureKeys ? summary[featureKeys.RANK] : null) || {};
+
+  div(class="space-y-8")
+    div(class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between")
+      div(class="space-y-4")
+        div(class="flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-purple-700")
+          span(class="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-700")
+            i(data-lucide="waveform" class="w-3 h-3 mr-1")
+            | Reverb Intelligence
+          if lastAnalysis
+            span(class="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-600")
+              | Refreshed #{lastAnalysis.toLocaleString()}
+        h1(class="text-3xl font-semibold text-gray-900") Search Intelligence Overview
+        p(class="text-gray-600 max-w-2xl")
+          | Comprehensive keyword, technical, and rankings intelligence for #{(currentEntity && currentEntity.name) || 'your brand'}.
+      form(action="/reverb/analysis" method="post" class="bg-white border border-gray-200 rounded-3xl px-5 py-4 shadow-sm flex flex-col gap-3 w-full max-w-xl")
+        input(type="hidden" name="redirect" value="/reverb")
+        div(class="grid grid-cols-1 md:grid-cols-2 gap-3")
+          div(class="space-y-2")
+            label(for="reverb-domain" class="text-xs uppercase tracking-[0.2em] text-gray-500") Domain or subdomain
+            input#reverb-domain(type="text" name="domain" value=(workspace && workspace.primaryDomain) placeholder="example.com" class="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+          div(class="space-y-2")
+            label(class="text-xs uppercase tracking-[0.2em] text-gray-500") Keyword seeds (optional)
+            textarea(name="keywords" rows="2" placeholder="keyword one, keyword two" class="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none")
+        fieldset(class="space-y-2")
+          legend(class="text-[11px] uppercase tracking-[0.3em] text-gray-500") Refresh features
+          div(class="grid grid-cols-1 md:grid-cols-3 gap-2")
+            - const refreshOptions = [
+            -   { key: featureKeys.KEYWORD, label: 'Keyword Intelligence' },
+            -   { key: featureKeys.AUDIT, label: 'On-Page Audit' },
+            -   { key: featureKeys.TECHNICAL, label: 'Technical Crawler' },
+            -   { key: featureKeys.BACKLINK, label: 'Backlink Analysis' },
+            -   { key: featureKeys.RANK, label: 'Rank Tracking' }
+            - ];
+            each option in refreshOptions
+              label(class="flex items-center gap-2 rounded-2xl border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:border-purple-400 transition")
+                input(type="checkbox" name="features" value=option.key checked)
+                span #{option.label}
+        div(class="flex justify-end")
+          button(type="submit" class="inline-flex items-center gap-2 rounded-2xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2")
+            i(data-lucide="refresh-cw" class="w-4 h-4")
+            span Refresh Analysis
+
+
+    div(class="grid grid-cols-1 lg:grid-cols-4 gap-5")
+      div(class="lg:col-span-2 bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6 space-y-4")
+        h2(class="text-lg font-semibold text-gray-900") Keyword Momentum
+        if keywordSummary && keywordSummary.totalTracked
+          div(class="grid grid-cols-3 gap-4 text-sm text-gray-600")
+            div
+              p(class="text-[11px] uppercase tracking-[0.3em] text-gray-500") Tracked
+              p(class="text-2xl font-semibold text-gray-900") #{keywordSummary.totalTracked}
+            div
+              p(class="text-[11px] uppercase tracking-[0.3em] text-gray-500") Avg Difficulty
+              p(class="text-2xl font-semibold text-amber-600") #{keywordSummary.averageDifficulty}
+            div
+              p(class="text-[11px] uppercase tracking-[0.3em] text-gray-500") Avg Opportunity
+              p(class="text-2xl font-semibold text-emerald-600") #{keywordSummary.averageOpportunity}
+          if keywordHighlights && keywordHighlights.length
+            div(class="border-t border-gray-100 pt-4 space-y-3")
+              each keyword in keywordHighlights
+                div(class="flex items-start justify-between gap-4")
+                  div
+                    p(class="font-medium text-gray-900") #{keyword.keyword}
+                    p(class="text-xs text-gray-500") Intent · #{keyword.intent}
+                  div(class="text-right space-y-1")
+                    span(class="inline-flex items-center rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700") Opportunity #{keyword.opportunityScore}
+                    p(class="text-[11px] text-gray-500") Rank #{keyword.currentRank} · Volume #{keyword.searchVolume}
+        else
+          p(class="text-sm text-gray-500") No keyword intelligence available yet.
+
+      div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6 space-y-4")
+        h2(class="text-lg font-semibold text-gray-900") Technical Health
+        if technicalSummary && technicalSummary.totalIssues
+          div(class="space-y-3 text-sm text-gray-600")
+            div(class="flex items-center justify-between")
+              span Total issues
+              span(class="inline-flex items-center px-3 py-1 rounded-full bg-red-50 text-red-600 text-xs font-semibold") #{technicalSummary.totalIssues}
+            if technicalSummary.bySeverity
+              div(class="space-y-1")
+                each count, severity in technicalSummary.bySeverity
+                  div(class="flex items-center justify-between")
+                    span(class="capitalize") #{severity}
+                    span(class="text-sm font-medium text-gray-900") #{count}
+        else
+          p(class="text-sm text-gray-500") Technical crawler has not reported issues.
+
+      div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6 space-y-4")
+        h2(class="text-lg font-semibold text-gray-900") Backlink Footprint
+        if backlinkSummary && backlinkSummary.totalReferringDomains
+          div(class="space-y-3 text-sm text-gray-600")
+            div(class="flex items-center justify-between")
+              span Referring domains
+              span(class="text-xl font-semibold text-gray-900") #{backlinkSummary.totalReferringDomains}
+            div(class="flex items-center justify-between")
+              span Avg authority
+              span(class="text-xl font-semibold text-emerald-600") #{backlinkSummary.averageAuthority}
+            if backlinkSummary.linkTypeBreakdown
+              div(class="space-y-1")
+                each count, type in backlinkSummary.linkTypeBreakdown
+                  div(class="flex items-center justify-between")
+                    span(class="uppercase text-[11px] tracking-[0.2em] text-gray-500") #{type}
+                    span(class="text-sm font-medium text-gray-900") #{count}
+        else
+          p(class="text-sm text-gray-500") No backlinks indexed yet.
+
+      div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6 space-y-4")
+        h2(class="text-lg font-semibold text-gray-900") Ranking Trajectory
+        if rankSummarySafe && rankSummarySafe.trackedKeywords
+          div(class="space-y-3 text-sm text-gray-600")
+            div(class="flex items-center justify-between")
+              span Keywords tracked
+              span(class="text-xl font-semibold text-gray-900") #{rankSummarySafe.trackedKeywords}
+            div(class="flex items-center justify-between")
+              span Avg position
+              span(class="text-xl font-semibold text-blue-600") #{rankSummarySafe.avgPosition}
+            div(class="flex items-center justify-between")
+              span Improving
+              span(class="text-sm font-medium text-emerald-600") +#{rankSummarySafe.improving}
+            div(class="flex items-center justify-between")
+              span Declining
+              span(class="text-sm font-medium text-rose-600") -#{rankSummarySafe.declining}
+        else
+          p(class="text-sm text-gray-500") No rank tracking snapshots yet.
+
+    if auditHighlights && auditHighlights.length
+      div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6 space-y-4")
+        div(class="flex items-center justify-between")
+          h2(class="text-lg font-semibold text-gray-900") Top Landing Pages
+          a(href="/reverb/audit" class="text-sm text-purple-600 hover:text-purple-500") View audit
+        div(class="grid grid-cols-1 md:grid-cols-2 gap-4")
+          each page in auditHighlights
+            div(class="rounded-2xl border border-gray-100 p-4 space-y-2 bg-gray-50")
+              p(class="text-sm font-semibold text-gray-900 truncate") #{page.url}
+              div(class="flex items-center justify-between text-xs text-gray-500")
+                span Audit score
+                span(class="inline-flex items-center px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold") #{page.auditScore}
+              if page.lighthouseScore
+                div(class="grid grid-cols-2 gap-2 text-[11px] text-gray-600")
+                  span Performance #{page.lighthouseScore.performance}
+                  span SEO #{page.lighthouseScore.seo}
+                  span Accessibility #{page.lighthouseScore.accessibility}
+                  span Best practices #{page.lighthouseScore.bestPractices}
+
+    if backlinkHighlights && backlinkHighlights.length
+      div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6 space-y-4")
+        div(class="flex items-center justify-between")
+          h2(class="text-lg font-semibold text-gray-900") High-Authority Backlinks
+          a(href="/reverb/backlinks" class="text-sm text-purple-600 hover:text-purple-500") Explore backlinks
+        div(class="grid grid-cols-1 md:grid-cols-2 gap-4")
+          each item in backlinkHighlights
+            div(class="rounded-2xl border border-gray-100 p-4 space-y-2 bg-white")
+              p(class="text-sm font-semibold text-gray-900 truncate") #{item.sourceDomain}
+              p(class="text-xs text-gray-500 truncate") #{item.sourceUrl}
+              div(class="flex items-center justify-between text-xs text-gray-600")
+                span Authority #{item.authorityScore}
+                span Spam #{item.spamScore}
+              if item.anchorText
+                p(class="text-xs text-gray-500") Anchor: #{item.anchorText}
+
+    if technicalIssues && technicalIssues.length
+      div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6 space-y-4")
+        div(class="flex items-center justify-between")
+          h2(class="text-lg font-semibold text-gray-900") Critical Issues
+          a(href="/reverb/technical" class="text-sm text-purple-600 hover:text-purple-500") Review crawler
+        div(class="space-y-3")
+          each issue in technicalIssues
+            div(class="rounded-2xl border border-gray-100 p-4 bg-rose-50 space-y-2")
+              span(class="inline-flex items-center px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] rounded-full bg-rose-100 text-rose-700") #{issue.severity}
+              p(class="text-sm font-semibold text-gray-900") #{issue.description}
+              if issue.url
+                a(href=issue.url class="text-xs text-purple-600 hover:text-purple-500 break-all") #{issue.url}
+              if issue.context && issue.context.recommendedAction
+                p(class="text-xs text-gray-600") Action: #{issue.context.recommendedAction}
+
+
+

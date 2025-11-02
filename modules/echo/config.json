@@ -1,14 +1,25 @@
 {
-    "name": "ECHO",
-    "icon": "waves",
-    "pricing": {
-        "monthly": {
-            "amount": 7900,
-            "currency": "USD"
-        },
-        "yearly": {
-            "amount": 79000,
-            "currency": "USD"
-        }
+  "name": "ECHO",
+  "icon": "waves",
+  "description": "Influencer discovery and intelligence for brand collaborations.",
+  "links": [
+    {
+      "name": "Favorites",
+      "url": "/favorites"
+    },
+    {
+      "name": "Matches",
+      "url": "/matches"
     }
+  ],
+  "pricing": {
+    "monthly": {
+      "amount": 7900,
+      "currency": "USD"
+    },
+    "yearly": {
+      "amount": 79000,
+      "currency": "USD"
+    }
+  }
 }

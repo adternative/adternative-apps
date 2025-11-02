@@ -1,29 +1,49 @@
 const sequelize = require('../../../config/database');
 
-// Sync models
-const syncDatabase = async () => {
-  try {
-    console.log('[ECHO] Syncing models...');
-    await sequelize.sync({ alter: true });
-    console.log('[ECHO] Models synced successfully');
-  } catch (error) {
-    console.error('[ECHO] Error syncing models:', error);
-  }
+const Influencer = require('./Influencer')(sequelize);
+const InfluencerPlatform = require('./InfluencerPlatform')(sequelize);
+const Match = require('./Match')(sequelize);
+
+let associationsApplied = false;
+
+const applyAssociations = () => {
+  if (associationsApplied) return;
+
+  Influencer.hasMany(InfluencerPlatform, {
+    foreignKey: 'influencer_id',
+    as: 'platforms',
+    onDelete: 'CASCADE'
+  });
+  InfluencerPlatform.belongsTo(Influencer, {
+    foreignKey: 'influencer_id',
+    as: 'influencer'
+  });
+
+  Influencer.hasMany(Match, {
+    foreignKey: 'influencer_id',
+    as: 'matches',
+    onDelete: 'CASCADE'
+  });
+  Match.belongsTo(Influencer, {
+    foreignKey: 'influencer_id',
+    as: 'influencer'
+  });
+
+  associationsApplied = true;
 };
 
-// Ensure required tables exist for ECHO
-const ensureReady = async () => {
-  try {
-    await sequelize.sync({ alter: true });
-  } catch (e) {
-    console.error('[ECHO] Error ensuring readiness:', e.message);
-    throw e;
-  }
+applyAssociations();
+
+const models = {
+  Influencer,
+  InfluencerPlatform,
+  Match
 };
 
 module.exports = {
   sequelize,
-  syncDatabase,
-  ensureReady
+  ...models,
+  models,
+  applyAssociations
 };
 

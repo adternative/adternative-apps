@@ -1,41 +1,19 @@
 {
-    "name": "REVERB",
-    "icon": "audio-waveform",
-    "description": "Next-generation SEO intelligence: technical health, keyword modeling, backlink velocity, and predictive insights.",
-    "toggles": {
-        "enableMockData": true,
-        "enablePredictive": true
-    },
-    "links": [
-        {
-            "name": "Site Health",
-            "url": "/site-health"
-        },
-        {
-            "name": "Keywords",
-            "url": "/keywords"
-        },
-        {
-            "name": "Backlinks",
-            "url": "/backlinks"
-        },
-        {
-            "name": "Competitors",
-            "url": "/competitors"
-        },
-        {
-            "name": "Insights",
-            "url": "/insights"
-        }
-    ],
-    "pricing": {
-        "monthly": {
-            "amount": 10900,
-            "currency": "USD"
-        },
-        "yearly": {
-            "amount": 109000,
-            "currency": "USD"
-        }
-    }
+  "name": "REVERB",
+  "icon": "audio-waveform",
+  "description": "Full-stack SEO intelligence across keywords, technical health, backlinks, and rankings.",
+  "links": [
+    { "name": "Keyword Intelligence", "url": "/keywords" },
+    { "name": "On-Page Audit", "url": "/audit" },
+    { "name": "Technical Crawler", "url": "/technical" },
+    { "name": "Backlink Analysis", "url": "/backlinks" },
+    { "name": "Rank Tracking", "url": "/ranks" }
+  ],
+  "pricing": {
+    "monthly": { "amount": 12900, "currency": "USD" },
+    "yearly": { "amount": 129000, "currency": "USD" }
+  }
 }
+
+
+

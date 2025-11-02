@@ -1,0 +1,118 @@
+extends ../../../views/layout
+
+
+block content
+  - const keywordOptions = Array.isArray(latestSnapshots) ? latestSnapshots : [];
+  - const timelineData = Array.isArray(timeline) ? timeline.slice().reverse() : [];
+  div(class="space-y-8")
+    div(class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between")
+      div
+        h1(class="text-3xl font-semibold text-gray-900") Rank Tracking & Reporting
+        p(class="text-gray-600") Monitor keyword visibility and diagnose volatility trends.
+      form(method="get" action="/reverb/ranks" class="flex items-center gap-3")
+        label(for="reverb-keyword" class="text-xs uppercase tracking-[0.3em] text-gray-500") Keyword
+        select#reverb-keyword(name="keyword" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500")
+          option(value="" selected=!selectedKeyword) Select keyword
+          if keywordOptions && keywordOptions.length
+            each row in keywordOptions
+              option(value=row.keyword selected=selectedKeyword === row.keyword) #{row.keyword}
+        button(type="submit" class="inline-flex items-center rounded-2xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2") Apply
+
+
+    if summary
+      div(class="grid grid-cols-1 md:grid-cols-4 gap-4")
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Tracked keywords
+          p(class="text-3xl font-semibold text-gray-900") #{summary.trackedKeywords}
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Avg position
+          p(class="text-3xl font-semibold text-blue-600") #{summary.avgPosition}
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Improving
+          p(class="text-3xl font-semibold text-emerald-600") +#{summary.improving}
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Declining
+          p(class="text-3xl font-semibold text-rose-600") -#{summary.declining}
+
+    if timelineData && timelineData.length
+      div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6 space-y-4")
+        div(class="flex items-center justify-between")
+          h2(class="text-lg font-semibold text-gray-900") Visibility timeline
+          span(class="text-sm text-gray-500") #{selectedKeyword}
+        canvas#reverb-rank-chart(height="120")
+
+    div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 overflow-hidden")
+      table(class="min-w-full text-sm text-gray-700")
+        thead(class="bg-gray-50 text-gray-500 uppercase text-xs")
+          tr
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Keyword
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Position
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Δ
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Volume
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Updated
+        tbody(class="divide-y divide-gray-100 bg-white")
+          if keywordOptions && keywordOptions.length
+            each row in keywordOptions
+              tr(class="hover:bg-gray-50 transition")
+                td(class="px-6 py-4 font-medium text-gray-900") #{row.keyword}
+                td(class="px-6 py-4 text-sm text-gray-700") #{row.position}
+                td(class="px-6 py-4")
+                  - const delta = row.positionDelta || 0;
+                  if delta > 0
+                    span(class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600") ↑ #{delta}
+                  else if delta < 0
+                    span(class="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600") ↓ #{Math.abs(delta)}
+                  else
+                    span(class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500") —
+                td(class="px-6 py-4 text-sm text-gray-700") #{row.searchVolume || '—'}
+                td(class="px-6 py-4 text-xs text-gray-500") #{row.trackedAt ? new Date(row.trackedAt).toLocaleString() : '—'}
+          else
+            tr
+              td(colspan="5" class="px-6 py-6 text-center text-sm text-gray-500") No rank snapshots available yet.
+
+  if timelineData && timelineData.length
+    script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js")
+    script.
+      (function () {
+        const ctx = document.getElementById('reverb-rank-chart');
+        if (!ctx) return;
+        const data = !{JSON.stringify(timelineData)};
+        const labels = data.map((point) => new Date(point.trackedAt).toLocaleDateString());
+        const positions = data.map((point) => point.position);
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Position',
+              data: positions,
+              borderColor: '#8b5cf6',
+              backgroundColor: '#8b5cf633',
+              tension: 0.35,
+              fill: true,
+              pointRadius: 2,
+              pointBackgroundColor: '#8b5cf6'
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                reverse: true,
+                ticks: { stepSize: 5, color: '#475569' },
+                grid: { color: '#e2e8f0' }
+              },
+              x: {
+                ticks: { color: '#64748b' },
+                grid: { color: '#f1f5f9' }
+              }
+            },
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      })();
+
+
+

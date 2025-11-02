@@ -1,62 +1,72 @@
 extends ../../../views/layout
 
+
 block content
-  - const backlinkList = backlinks || [];
+  div(class="space-y-8")
+    div(class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between")
+      div
+        h1(class="text-3xl font-semibold text-gray-900") Backlink Analysis
+        p(class="text-gray-600") Audit authority signals, anchor text mix, and referring domain quality.
+      form(method="get" action="/reverb/backlinks" class="flex items-center gap-3")
+        label(for="reverb-type" class="text-xs uppercase tracking-[0.3em] text-gray-500") Link type
+        select#reverb-type(name="type" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500")
+          option(value="" selected=!typeFilter) All
+          option(value="follow" selected=typeFilter === 'follow') Follow
+          option(value="nofollow" selected=typeFilter === 'nofollow') Nofollow
+          option(value="ugc" selected=typeFilter === 'ugc') UGC
+          option(value="sponsored" selected=typeFilter === 'sponsored') Sponsored
+        button(type="submit" class="inline-flex items-center rounded-2xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2") Filter
 
-  div(class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4")
-    div
-      h2(class="text-3xl font-semibold text-slate-900 tracking-tight") Backlink intelligence
-      p(class="text-slate-500 mt-2") Track referring domains, authority, and velocity changes for #{site ? site.domain : 'your site'}.
-    form(action="/reverb/backlinks/sync" method="post" class="inline-flex")
-      input(type="hidden" name="mock" value="true")
-      button(type="submit" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 transition")
-        i(data-lucide="refresh-cw" class="w-4 h-4")
-        | Refresh backlinks
 
-  if feedback && feedback.status
-    div(class=(feedback.status === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700') + ' rounded-xl px-4 py-3 mb-6 text-sm flex items-start gap-3')
-      i(data-lucide=feedback.status === 'success' ? 'check-circle' : 'alert-triangle' class="w-4 h-4 mt-0.5")
-      span #{feedback.message || (feedback.status === 'success' ? 'Backlinks refreshed successfully.' : 'Unable to refresh backlinks.')}
+    if summary
+      div(class="grid grid-cols-1 md:grid-cols-3 gap-4")
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Referring domains
+          p(class="text-3xl font-semibold text-gray-900") #{summary.totalReferringDomains}
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Avg authority
+          p(class="text-3xl font-semibold text-emerald-600") #{summary.averageAuthority}
+        div(class="rounded-3xl bg-white ring-1 ring-gray-200 shadow-sm p-5 space-y-1")
+          p(class="text-xs uppercase tracking-[0.3em] text-gray-500") Link types
+          if summary.linkTypeBreakdown && Object.keys(summary.linkTypeBreakdown).length
+            each count, label in summary.linkTypeBreakdown
+              div(class="flex items-center justify-between text-sm text-gray-600")
+                span(class="uppercase text-[11px] tracking-[0.2em]") #{label}
+                span(class="font-medium text-gray-900") #{count}
+          else
+            p(class="text-sm text-gray-400") No backlink data yet.
 
-  div(class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6")
-    h3(class="text-lg font-semibold text-slate-900 mb-4") Recent backlinks
-    if backlinkList.length
-      table(class="w-full text-sm text-left text-slate-600 border-t border-slate-200")
-        thead
-          tr(class="text-xs uppercase text-slate-500 tracking-wide")
-            th(class="py-3") Source
-            th(class="py-3") Target
-            th(class="py-3") Anchor
-            th(class="py-3") Authority
-            th(class="py-3") Velocity
-            th(class="py-3") First seen
-            th(class="py-3") Last seen
-        tbody
-          each link in backlinkList
-            - const source = link.sourceUrl || '—';
-            - const target = link.targetUrl || '—';
-            - const anchor = link.anchorText || '—';
-            - const metrics = link.metrics || {};
-            - const da = metrics.domainAuthority !== undefined ? metrics.domainAuthority : '—';
-            - const pa = metrics.pageAuthority !== undefined ? metrics.pageAuthority : '—';
-            - const velocity = link.velocity || {};
-            - const trend = velocity.trend || 'steady';
-            - const velocityClass = trend === 'down' ? 'bg-red-100 text-red-600' : trend === 'up' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600';
-            - const firstSeen = link.firstSeenAt ? new Date(link.firstSeenAt) : null;
-            - const lastSeen = link.lastSeenAt ? new Date(link.lastSeenAt) : null;
-            tr(class="border-t border-slate-200 hover:bg-slate-50 transition")
-              td(class="py-3")
-                a(href=source target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-700 line-clamp-1") #{source}
-              td(class="py-3 text-slate-500 line-clamp-1") #{target}
-              td(class="py-3 text-slate-600") #{anchor}
-              td(class="py-3")
-                span(class="inline-flex items-center gap-2 text-sm")
-                  span DA #{da}
-                  span PA #{pa}
-              td(class="py-3")
-                span(class=["inline-flex items-center px-2 py-0.5 rounded text-xs font-medium", velocityClass]) #{trend}
-              td(class="py-3") #{firstSeen ? firstSeen.toLocaleDateString() : '—'}
-              td(class="py-3") #{lastSeen ? lastSeen.toLocaleDateString() : '—'}
-    else
-      p(class="text-sm text-slate-500") No backlinks captured yet. Refresh to pull data from providers or mock sources.
+    div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 overflow-hidden")
+      table(class="min-w-full text-sm text-gray-700")
+        thead(class="bg-gray-50 text-gray-500 uppercase text-xs")
+          tr
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Source domain
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Source URL
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Target URL
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Anchor text
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Authority
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Spam
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Type
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") First seen
+            th(class="px-6 py-3 text-left font-semibold tracking-wide") Last seen
+        tbody(class="divide-y divide-gray-100 bg-white")
+          if backlinks && backlinks.length
+            each row in backlinks
+              tr(class="hover:bg-gray-50 transition align-top")
+                td(class="px-6 py-4 font-medium text-gray-900") #{row.sourceDomain}
+                td(class="px-6 py-4")
+                  a(href=row.sourceUrl target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:text-purple-500 break-words") #{row.sourceUrl}
+                td(class="px-6 py-4")
+                  a(href=row.targetUrl target="_blank" rel="noopener noreferrer" class="text-sm text-gray-600 break-words hover:text-gray-800") #{row.targetUrl}
+                td(class="px-6 py-4 text-sm text-gray-600") #{row.anchorText || '—'}
+                td(class="px-6 py-4 text-sm font-semibold text-emerald-600") #{row.authorityScore}
+                td(class="px-6 py-4 text-sm font-semibold text-rose-600") #{row.spamScore}
+                td(class="px-6 py-4 uppercase text-[11px] tracking-[0.2em] text-gray-500") #{row.type}
+                td(class="px-6 py-4 text-xs text-gray-500") #{row.firstSeenAt ? new Date(row.firstSeenAt).toLocaleDateString() : '—'}
+                td(class="px-6 py-4 text-xs text-gray-500") #{row.lastSeenAt ? new Date(row.lastSeenAt).toLocaleDateString() : '—'}
+          else
+            tr
+              td(colspan="9" class="px-6 py-6 text-center text-sm text-gray-500") No backlinks found for the selected filter.
+
+
 

@@ -5,7 +5,7 @@ const { ensureReady } = require('../database');
 const { getOrCreateCoreEntity, fetchAnalyticsSnapshot } = require('./entity');
 const { runRecommendationEngine, getLatestRecommendation } = require('./recommendation');
 
-const DASHBOARD_VIEW = path.join(__dirname, '..', 'views', 'core_dashboard.pug');
+const DASHBOARD_VIEW = path.join(__dirname, '..', 'views', 'index.pug');
 const RECOMMENDATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 const toPlain = (maybeModel) => {

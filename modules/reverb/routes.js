@@ -1,46 +1,52 @@
 const express = require('express');
-const router = express.Router();
+
 const { authenticateToken } = require('../../middleware/auth');
-const { requireAppAccess, withAvailableApps } = require('../../middleware/paywall');
 const { currentEntity } = require('../../middleware/entity');
+const { requireAppAccess, withAvailableApps } = require('../../middleware/paywall');
+
 const { ensureReady } = require('./database');
-const dashboard = require('./controllers/dashboard');
-const technical = require('./controllers/technical');
-const keyword = require('./controllers/keyword');
-const backlink = require('./controllers/backlink');
-const competitor = require('./controllers/competitor');
-const insights = require('./controllers/insights');
+const { renderDashboard } = require('./controllers/dashboard');
+const { listKeywords } = require('./controllers/keyword');
+const { showAudit } = require('./controllers/audit');
+const { listTechnicalIssues } = require('./controllers/technical');
+const { listBacklinks } = require('./controllers/backlink');
+const { listRankTracking } = require('./controllers/rank');
+const { triggerAnalysis } = require('./controllers/analysis');
+
+const router = express.Router();
 
 router.use(authenticateToken);
 router.use(currentEntity);
 router.use(requireAppAccess('reverb'));
 
 router.use(async (req, res, next) => {
-  try { await ensureReady(); } catch (_) {}
+  try {
+    await ensureReady();
+  } catch (error) {
+    console.error('[REVERB] ensureReady error:', error.message);
+  }
   next();
 });
 
-router.get('/', withAvailableApps, dashboard.renderDashboard);
+router.use((req, res, next) => {
+  res.locals.appName = 'REVERB';
+  next();
+});
 
-router.get('/site-health', withAvailableApps, technical.renderSiteHealth);
-router.post('/site-health/audit', technical.triggerSiteAudit);
-router.get('/site-health/audits/:auditId', withAvailableApps, technical.renderAuditDetail);
+router.get('/', withAvailableApps, renderDashboard);
+router.get('/keywords', withAvailableApps, listKeywords);
+router.get('/audit', withAvailableApps, showAudit);
+router.get('/technical', withAvailableApps, listTechnicalIssues);
+router.get('/backlinks', withAvailableApps, listBacklinks);
+router.get('/ranks', withAvailableApps, listRankTracking);
 
-router.get('/keywords', withAvailableApps, keyword.renderKeywords);
-router.post('/keywords/sync', keyword.refreshKeywords);
-router.post('/keywords/:keywordId/capture-serp', keyword.captureSerp);
-router.get('/keywords/:keywordId/rank-history', withAvailableApps, keyword.renderRankHistory);
-
-router.get('/backlinks', withAvailableApps, backlink.renderBacklinks);
-router.post('/backlinks/sync', backlink.refreshBacklinks);
-
-router.get('/competitors', withAvailableApps, competitor.renderCompetitors);
-router.post('/competitors/sync', competitor.refreshCompetitors);
-
-router.get('/insights', withAvailableApps, insights.renderInsights);
-router.post('/insights/predictive', insights.refreshPredictive);
+router.post('/analysis', triggerAnalysis);
+router.post('/analyze', triggerAnalysis);
 
 module.exports = (app) => {
   app.use('/reverb', router);
   console.log('[REVERB] Routes loaded at /reverb');
 };
+
+
+

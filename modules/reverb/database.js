@@ -1,34 +1,35 @@
 const {
   sequelize,
-  models,
-  ReverbSite,
-  SiteAudit,
-  PageInsight,
-  Keyword,
-  KeywordSnapshot,
-  SerpSnapshot,
-  SerpResult,
-  Backlink,
-  BacklinkSnapshot,
-  Competitor,
-  CompetitorGap,
-  RankRecord,
-  InsightEvent,
-  AiInsight
+  models: {
+    Workspace,
+    KeywordInsight,
+    PageAudit,
+    TechnicalIssue,
+    Backlink,
+    RankSnapshot
+  },
+  applyAssociations
 } = require('./models');
 
-// --- Utility Helpers ------------------------------------------------------
+applyAssociations();
 
-const reverbModelList = Object.values(models);
-
-let ensurePromise = null;
+const reverbModels = [
+  Workspace,
+  KeywordInsight,
+  PageAudit,
+  TechnicalIssue,
+  Backlink,
+  RankSnapshot
+];
 
 const syncReverbModels = async ({ alter = true } = {}) => {
   const options = alter ? { alter: true } : {};
-  for (const model of reverbModelList) {
+  for (const model of reverbModels) {
     await model.sync(options);
   }
 };
+
+let ensurePromise;
 
 const ensureReady = async () => {
   if (!ensurePromise) {
@@ -41,41 +42,20 @@ const ensureReady = async () => {
   return ensurePromise;
 };
 
-const getOrCreateSite = async ({ entityId, domain, name, defaults = {} }) => {
-  if (!entityId || !domain) throw new Error('entityId and domain are required to manage sites');
-  const [site] = await ReverbSite.findOrCreate({
-    where: { entityId, domain },
-    defaults: {
-      name: name || domain,
-      defaultLocation: defaults.location || 'United States',
-      defaultDevice: defaults.device || 'desktop',
-      metadata: defaults.metadata || {}
-    }
-  });
-  return site;
-};
-
 module.exports = {
   sequelize,
   models: {
-    ReverbSite,
-    SiteAudit,
-    PageInsight,
-    Keyword,
-    KeywordSnapshot,
-    SerpSnapshot,
-    SerpResult,
+    Workspace,
+    KeywordInsight,
+    PageAudit,
+    TechnicalIssue,
     Backlink,
-    BacklinkSnapshot,
-    Competitor,
-    CompetitorGap,
-    RankRecord,
-    InsightEvent,
-    AiInsight
+    RankSnapshot
   },
   ensureReady,
-  syncReverbModels,
-  getOrCreateSite
+  syncDatabase: syncReverbModels,
+  syncReverbModels
 };
+
 
 
