@@ -2,8 +2,29 @@ const path = require('path');
 
 const { getAvailableApps } = require('../../../utils/appLoader');
 const { ensureReady } = require('../database');
-const { getOrCreateCoreEntity, fetchAnalyticsSnapshot } = require('./entity');
-const { runRecommendationEngine, getLatestRecommendation } = require('./recommendation');
+// The original entity and recommendation controllers may be absent in this branch.
+// For resilience, we lazily require them and fall back to light-weight defaults.
+let getOrCreateCoreEntity;
+let fetchAnalyticsSnapshot;
+let runRecommendationEngine;
+let getLatestRecommendation;
+try {
+  ({ getOrCreateCoreEntity, fetchAnalyticsSnapshot } = require('./entity'));
+} catch (_) {
+  getOrCreateCoreEntity = async (baseEntity) => baseEntity;
+  fetchAnalyticsSnapshot = async () => ({ traffic: {}, audience: {} });
+}
+try {
+  ({ runRecommendationEngine, getLatestRecommendation } = require('./recommendation'));
+} catch (_) {
+  runRecommendationEngine = async () => ({ recommendation: {}, scores: [], allocation: [], outcomes: {}, aiNarrative: null });
+  getLatestRecommendation = async () => null;
+}
+
+// Goal-based channel scoring
+const { computeChannelScores } = require('../utils/channelScoring');
+const { DEFAULT_CHANNELS } = require('../utils/mockData');
+const Demographic = require('../../../models/Demographic');
 
 const DASHBOARD_VIEW = path.join(__dirname, '..', 'views', 'index.pug');
 const RECOMMENDATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -29,7 +50,7 @@ const isRecommendationStale = (record) => {
   return Date.now() - generatedAt > RECOMMENDATION_TTL_MS;
 };
 
-const loadRecommendationBundle = async ({ coreEntity, analytics }) => {
+const loadRecommendationBundle = async ({ coreEntity, analytics, skipRefreshWhenStale = false }) => {
   const latest = await getLatestRecommendation(coreEntity.id);
 
   if (latest && !isRecommendationStale(latest)) {
@@ -39,6 +60,21 @@ const loadRecommendationBundle = async ({ coreEntity, analytics }) => {
       allocation: latest.suggestedBudgets || [],
       outcomes: latest.estimatedOutcomes || {},
       aiNarrative: latest.aiNarrative || null,
+      refreshed: false,
+      benchmark: null,
+      socialSignals: null,
+      platformSignals: null
+    };
+  }
+
+  if (skipRefreshWhenStale) {
+    // Avoid heavy work when the caller doesn't need a fresh bundle
+    return {
+      recommendation: latest || {},
+      scores: (latest && latest.recommendedChannels) || [],
+      allocation: (latest && latest.suggestedBudgets) || [],
+      outcomes: (latest && latest.estimatedOutcomes) || {},
+      aiNarrative: (latest && latest.aiNarrative) || null,
       refreshed: false,
       benchmark: null,
       socialSignals: null,
@@ -118,7 +154,18 @@ const renderDashboard = async (req, res) => {
 
     const analytics = await fetchAnalyticsSnapshot(baseEntity.id);
     const coreEntity = await getOrCreateCoreEntity(baseEntity);
-    const bundle = await loadRecommendationBundle({ coreEntity, analytics });
+
+    // Determine goal before loading the bundle to optionally skip heavy refresh
+    const selectedGoalRaw = (req.query && req.query.goal) ? String(req.query.goal).toLowerCase() : '';
+    const allowedGoals = ['awareness', 'leads', 'sales', 'retention'];
+    const normalizeGoal = (g) => {
+      if (g === 'retention') return 'sales';
+      if (allowedGoals.includes(g)) return g;
+      return '';
+    };
+    const selectedGoal = normalizeGoal(selectedGoalRaw);
+
+    const bundle = await loadRecommendationBundle({ coreEntity, analytics, skipRefreshWhenStale: Boolean(selectedGoal) });
 
     const context = buildDashboardContext({
       req,
@@ -127,6 +174,45 @@ const renderDashboard = async (req, res) => {
       analytics,
       bundle
     });
+
+    // Attempt to load demographics for the current entity for the Create Goal widget
+    let demographics = [];
+    try {
+      if (req.currentEntity && req.currentEntity.id) {
+        demographics = await Demographic.findAll({
+          attributes: ['id', 'name'],
+          where: { entity_id: req.currentEntity.id },
+          order: [['createdAt', 'DESC']]
+        });
+      }
+    } catch (err) {
+      console.warn('[CORE] Failed to load demographics for widget:', err && err.message);
+    }
+    context.demographics = Array.isArray(demographics) ? demographics : [];
+
+    // If a goal is selected, recompute channel scores using the goal bias and default channels
+    if (selectedGoal) {
+      const entityProfile = { ...(context.entity || {}), goals: selectedGoal };
+      const benchmark = context.benchmark || {};
+      const platformSignals = context.platformSignals || {};
+      const socialSignals = context.socialSignals || {};
+      const analyticsSnapshot = context.analytics || {};
+      const channels = DEFAULT_CHANNELS;
+
+      const matchyScores = computeChannelScores({
+        channels,
+        entityProfile,
+        benchmark,
+        platformSignals,
+        socialSignals,
+        analytics: analyticsSnapshot
+      });
+
+      context.scores = matchyScores;
+      context.selectedGoal = selectedGoal;
+    } else {
+      context.selectedGoal = '';
+    }
 
     res.render(DASHBOARD_VIEW, context);
   } catch (error) {

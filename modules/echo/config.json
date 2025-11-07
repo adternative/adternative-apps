@@ -1,7 +1,7 @@
 {
   "name": "ECHO",
   "icon": "waves",
-  "description": "Influencer discovery and intelligence for brand collaborations.",
+  "description": "Influencer matching for brand collaborations.",
   "links": [
     {
       "name": "Favorites",
@@ -10,6 +10,26 @@
     {
       "name": "Matches",
       "url": "/matches"
+    }
+  ],
+  "settings": [
+    {
+      "name": "Influencers",
+      "model": "EchoInfluencer",
+      "fields": [
+        "name",
+        "handle",
+        "photo",
+        "bio",
+        "socials",
+        "contactEmail",
+        "country",
+        "language",
+        "topics",
+        "authenticityScore",
+        "averageEngagementRate",
+        "avgCostPerPost"
+      ]
     }
   ],
   "pricing": {

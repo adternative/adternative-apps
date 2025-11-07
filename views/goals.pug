@@ -1,0 +1,112 @@
+extends frame
+
+block pageContent
+  // Header
+  div(class="mb-8")
+    h2(class="text-2xl font-bold text-gray-900") Goals
+    p(class="text-gray-600") Define measurable outcomes and track progress for your entity
+
+  // Create Goal widget
+  div(class="bg-white rounded-xl shadow p-6 mb-8")
+    h3(class="text-lg font-semibold text-gray-900 mb-4") Create a goal
+    form(action="/goals" method="POST" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4")
+      // Name
+      div
+        label(for="g_name" class="block text-sm font-medium text-gray-700 mb-2") Name
+        input(type="text" id="g_name" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+
+      // Demographic
+      div
+        label(for="g_demographic" class="block text-sm font-medium text-gray-700 mb-2") Audience
+        select(id="g_demographic" name="demographic_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+          option(value="") Select an audience
+          if demographics && demographics.length
+            each d in demographics
+              option(value=d.id)= d.name || `Audience #${d.id}`
+          else
+            option(value="" disabled) No audiences yet
+
+      // KPI
+      div
+        label(for="g_kpi" class="block text-sm font-medium text-gray-700 mb-2") KPI
+        select(id="g_kpi" name="kpi" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+          option(value="") Select KPI
+          option(value="awareness") Awareness
+          option(value="leads") Leads
+          option(value="sales") Sales
+          option(value="retention") Retention
+
+      // Metric
+      div
+        label(for="g_metric" class="block text-sm font-medium text-gray-700 mb-2") Metric
+        select(id="g_metric" name="metric" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+          option(value="") Select metric
+          option(value="reach") Reach
+          option(value="impressions") Impressions
+          option(value="ctr") CTR
+          option(value="cpa") CPA
+          option(value="roas") ROAS
+          option(value="bounce rate") Bounce rate
+
+      // Current value (optional)
+      div
+        label(for="g_current" class="block text-sm font-medium text-gray-700 mb-2") Current value (optional)
+        input(type="number" step="any" id="g_current" name="current_value" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+
+      // Target value
+      div
+        label(for="g_target" class="block text-sm font-medium text-gray-700 mb-2") Target value
+        input(type="number" step="any" id="g_target" name="target_value" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+
+      // Budget
+      div
+        label(for="g_budget" class="block text-sm font-medium text-gray-700 mb-2") Budget
+        input(type="number" step="any" id="g_budget" name="budget" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+
+      // Priority
+      div
+        label(for="g_priority" class="block text-sm font-medium text-gray-700 mb-2") Priority
+        select(id="g_priority" name="priority" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+          option(value="low") Low
+          option(value="medium" selected) Medium
+          option(value="high") High
+
+      // Submit button (full row at end)
+      div(class="md:col-span-2 lg:col-span-3 flex justify-end mt-2")
+        button(type="submit" class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-teal-400 text-white hover:bg-purple-900 focus:ring-purple-500")
+          i(data-lucide="plus" class="w-4 h-4 mr-2")
+          | Create goal
+
+  // Goals table
+  div(class="bg-white rounded-xl shadow overflow-hidden")
+    div(class="px-6 py-4 border-b border-gray-200 flex items-center justify-between")
+      h3(class="text-lg font-semibold text-gray-900") Current goals
+    if goals && goals.length
+      div(class="overflow-x-auto")
+        table(class="min-w-full divide-y divide-gray-200")
+          thead(class="bg-gray-50")
+            tr
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Name
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") KPI
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Metric
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Target
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Current
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Budget
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Priority
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Status
+          tbody(class="bg-white divide-y divide-gray-200")
+            each g in goals
+              - var obj = (g && g.objective) ? g.objective : {};
+              tr
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-900")= g.name
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-700")= obj.kpi || '-'
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-700")= obj.metric || '-'
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-700")= (typeof obj.target_value !== 'undefined' && obj.target_value !== null) ? obj.target_value : '-'
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-700")= (typeof obj.current_value !== 'undefined' && obj.current_value !== null) ? obj.current_value : '-'
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-700")= (typeof obj.budget !== 'undefined' && obj.budget !== null) ? obj.budget : '-'
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 capitalize")= g.priority || 'medium'
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 capitalize")= g.status || 'draft'
+    else
+      div(class="px-6 py-6 text-gray-600") No goals yet. Create your first goal above.
+
+

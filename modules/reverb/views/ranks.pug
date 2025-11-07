@@ -1,7 +1,7 @@
-extends ../../../views/layout
+extends ../../../views/frame
 
 
-block content
+block pageContent
   - const keywordOptions = Array.isArray(latestSnapshots) ? latestSnapshots : [];
   - const timelineData = Array.isArray(timeline) ? timeline.slice().reverse() : [];
   div(class="space-y-8")

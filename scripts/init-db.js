@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { sequelize, User, Entity } = require('../models');
+const { sequelize } = require('../models');
 const fs = require('fs');
 const path = require('path');
 

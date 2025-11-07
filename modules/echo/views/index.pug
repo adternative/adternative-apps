@@ -1,6 +1,6 @@
-extends ../../../views/layout
+extends ../../../views/frame
 
-block content
+block pageContent
   - const discoveryData = (typeof discovery === 'object' && discovery) ? discovery : {};
   - const influencers = Array.isArray(discoveryData.influencers) ? discoveryData.influencers : [];
   - const topInfluencers = influencers.slice(0, 5);
@@ -8,6 +8,7 @@ block content
   - const entityName = currentEntity && currentEntity.name ? currentEntity.name : 'your entity';
   - const entityIndustry = currentEntity && currentEntity.industry ? currentEntity.industry : 'your industry';
   - const activeSection = section || 'discovery';
+  - const hasGoalSelected = selectedGoal && selectedGoal.id;
 
   div(class="space-y-8")
     div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-8")
@@ -27,6 +28,88 @@ block content
           else
             p(class="text-gray-500") Discovery results will appear once data is synced.
 
+    // Goal matching + Create Goal widget row
+    div(class="grid grid-cols-1 lg:grid-cols-2 gap-6")
+      // Goal-based matching quick selector (GET on /echo)
+      div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6")
+        div(class="flex items-center justify-between mb-4")
+          h2(class="text-lg font-semibold text-gray-900") Match influencers by goal
+          if hasGoalSelected
+            span(class="text-xs font-medium text-teal-700 bg-teal-50 px-2 py-1 rounded-full")= selectedGoal.name
+        form(method="get" action="/echo" class="grid grid-cols-1 sm:grid-cols-5 gap-3")
+          div(class="sm:col-span-3")
+            label(for="echoGoalQuick" class="block text-sm font-medium text-gray-700 mb-1") Select a goal
+            select#echoGoalQuick(name="goalId" class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+              option(value="") Choose goal…
+              if Array.isArray(goals) && goals.length
+                each g in goals
+                  option(value=g.id selected=(hasGoalSelected && String(selectedGoal.id) === String(g.id)))= g.name
+          div(class="sm:col-span-2 flex items-end")
+            button(type="submit" class="inline-flex items-center w-full justify-center px-4 py-2 rounded-xl bg-purple-600 text-white font-medium hover:bg-purple-700 transition")
+              i(data-lucide="sparkles" class="w-4 h-4 mr-2")
+              | Match influencers
+        if hasGoalSelected && influencers.length
+          div(class="mt-6")
+            ul(class="divide-y divide-gray-100")
+              each inf in influencers.slice(0, 8)
+                li(class="py-3 flex items-center justify-between")
+                  span(class="text-sm font-medium text-gray-900")= inf && inf.name ? inf.name : '@influencer'
+                  span(class="text-sm text-gray-500") Matchness #{Math.round(Number(inf && (inf.matchness || inf.fitScore)) || 0)}/100
+        else
+          p(class="mt-4 text-sm text-gray-500") Choose a goal and click "Match influencers" to see ranked creators.
+
+      // Create Goal widget (posts to main /goals route)
+      div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6")
+        h2(class="text-lg font-semibold text-gray-900 mb-4") Create a new goal
+        form(method="post" action="/goals" class="grid grid-cols-1 sm:grid-cols-2 gap-4")
+          div
+            label(for="goalName" class="block text-sm font-medium text-gray-700 mb-1") Name
+            input#goalName(type="text" name="name" required placeholder="e.g. Launch Affiliate Sales" class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+          div
+            label(for="goalPriority" class="block text-sm font-medium text-gray-700 mb-1") Priority
+            select#goalPriority(name="priority" class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+              option(value="low") Low
+              option(value="medium" selected) Medium
+              option(value="high") High
+          div
+            label(for="goalDemographic" class="block text-sm font-medium text-gray-700 mb-1") Demographic
+            if Array.isArray(demographics) && demographics.length
+              select#goalDemographic(name="demographic_id" required class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+                each d in demographics
+                  option(value=d.id)= d.name || ('Demographic ' + String(d.id).slice(0, 6))
+            else
+              select#goalDemographic(disabled class="w-full rounded-xl border-gray-300 bg-gray-50 text-gray-400")
+                option No demographics found for this entity
+          div
+            label(for="goalKpi" class="block text-sm font-medium text-gray-700 mb-1") KPI
+            select#goalKpi(name="kpi" required class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+              option(value="awareness") Awareness
+              option(value="leads") Leads
+              option(value="sales") Sales
+              option(value="retention") Retention
+          div
+            label(for="goalMetric" class="block text-sm font-medium text-gray-700 mb-1") Metric
+            select#goalMetric(name="metric" required class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+              option(value="reach") Reach
+              option(value="impressions") Impressions
+              option(value="ctr") CTR
+              option(value="cpa") CPA
+              option(value="roas") ROAS
+              option(value="bounce rate") Bounce rate
+          div
+            label(for="goalBudget" class="block text-sm font-medium text-gray-700 mb-1") Monthly budget
+            input#goalBudget(type="number" step="0.01" min="0" name="budget" required placeholder="10000" class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+          div
+            label(for="goalCurrent" class="block text-sm font-medium text-gray-700 mb-1") Current value (optional)
+            input#goalCurrent(type="number" step="0.0001" min="0" name="current_value" placeholder="0" class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+          div
+            label(for="goalTarget" class="block text-sm font-medium text-gray-700 mb-1") Target value
+            input#goalTarget(type="number" step="0.0001" min="0" name="target_value" required placeholder="0.05" class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+          div(class="sm:col-span-2 flex justify-end")
+            button(type="submit" class="inline-flex items-center px-4 py-2 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition")
+              i(data-lucide="plus" class="w-4 h-4 mr-2")
+              | Create goal
+
     if feedback && feedback.status
       div(class=[
         'rounded-2xl px-4 py-3 border text-sm',
@@ -35,6 +118,20 @@ block content
         span #{feedback.message || (feedback.status === 'error' ? 'Unable to complete the requested action.' : 'Action completed successfully.')}
 
     form#echo-filter-form(action="/echo/discovery" method="post" class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4")
+      div(class="space-y-2")
+        label(for="echo-goal" class="text-xs uppercase tracking-wide text-gray-500") Goal
+        select#echo-goal(name="goalId" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+          option(value="") Select a goal (optional)
+          if Array.isArray(goals) && goals.length
+            each g in goals
+              option(value=g.id selected=(String(filtersData.goalId||'') === String(g.id))) #{g.name}
+      div(class="space-y-2")
+        label(for="echo-demographic" class="text-xs uppercase tracking-wide text-gray-500") Demographic
+        select#echo-demographic(name="demographicId" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+          option(value="") Select a demographic (optional)
+          if Array.isArray(demographics) && demographics.length
+            each d in demographics
+              option(value=d.id selected=(String(filtersData.demographicId||'') === String(d.id))) #{d.name}
       div(class="space-y-2")
         label(for="echo-region" class="text-xs uppercase tracking-wide text-gray-500") Region
         input#echo-region(type="text" name="region" value=filtersData.region placeholder="e.g. United States" class="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
@@ -67,7 +164,7 @@ block content
                 th(class="px-6 py-3 text-left font-medium") Platform(s)
                 th(class="px-6 py-3 text-left font-medium") Engagement
                 th(class="px-6 py-3 text-left font-medium") Reach
-                th(class="px-6 py-3 text-right font-medium") Fit Score
+                th(class="px-6 py-3 text-right font-medium") #{hasGoalSelected ? 'Matchness' : 'Fit Score'}
             tbody(class="divide-y divide-gray-100 bg-white")
               if influencers.length
                 each influencer in influencers
@@ -77,26 +174,21 @@ block content
                   tr(class="hover:bg-gray-50 transition")
                     td(class="px-6 py-4 align-top")
                       div(class="flex items-center gap-3")
-                        if influencer.profileImage
-                          img(src=influencer.profileImage alt=influencer.name class="w-10 h-10 aspect-square rounded-full object-cover border border-gray-200")
+                        if influencer.photo
+                          img(src=signedImageUrl(influencer.photo) alt=influencer.name class="w-10 h-10 aspect-square rounded-full object-cover border border-gray-200")
                         div
                           p(class="font-medium text-gray-900") #{influencer.name}
                           p(class="text-xs text-gray-500") @#{influencer.handle}
                           if influencer.contactEmail
                             a(href=`mailto:${influencer.contactEmail}` class="text-[11px] text-purple-600 hover:text-purple-500") Contact
                     td(class="px-6 py-4 align-top text-gray-600 space-y-1")
-                      if influencer.platforms && influencer.platforms.length
-                        each platform in influencer.platforms
-                          span(class="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium capitalize text-gray-700") #{platform.platform}
+                      if influencer.socials && influencer.socials.length
+                        each social in influencer.socials
+                          span(class="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium capitalize text-gray-700") #{social.platform}
                       else
                         span(class="text-xs text-gray-400") No data
-                    td(class="px-6 py-4 align-top text-gray-600") #{engagementRate}
-                    td(class="px-6 py-4 align-top text-gray-600") #{reachDisplay}
-                    td(class="px-6 py-4 align-top text-right")
-                      span(class="inline-flex items-center justify-center text-sm font-semibold text-emerald-700 bg-emerald-100 rounded-full px-3 py-1") #{influencer.fitScore}
-              else
-                tr
-                  td(colspan="5" class="px-6 py-6 text-center text-sm text-gray-500") No influencers discovered yet. Adjust your filters and refresh.
+                    td(class="px-6 py-4 align-top text-right font-semibold text-gray-900") #{hasGoalSelected ? Math.round(influencer.matchness || influencer.fitScore || 0) : Math.round(influencer.fitScore || 0)}
+
 
       div(class="bg-white rounded-3xl shadow-sm ring-1 ring-gray-200 flex flex-col")
         div(class="px-6 py-4 border-b border-gray-200")
@@ -132,6 +224,24 @@ block content
             form.reset();
             form.submit();
           }
+        });
+      }
+      // Mutual exclusivity for goal vs demographic, auto-submit on change
+      const form = document.getElementById('echo-filter-form');
+      const goalSelect = document.getElementById('echo-goal');
+      const demoSelect = document.getElementById('echo-demographic');
+      if (goalSelect && demoSelect && form) {
+        goalSelect.addEventListener('change', () => {
+          if (goalSelect.value) {
+            demoSelect.value = '';
+          }
+          form.requestSubmit ? form.requestSubmit() : form.submit();
+        });
+        demoSelect.addEventListener('change', () => {
+          if (demoSelect.value) {
+            goalSelect.value = '';
+          }
+          form.requestSubmit ? form.requestSubmit() : form.submit();
         });
       }
 

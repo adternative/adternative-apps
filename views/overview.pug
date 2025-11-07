@@ -1,0 +1,27 @@
+extends frame
+
+block pageContent
+  // Header
+  div(class="mb-8")
+    h2(class="text-2xl font-bold text-gray-900") Overview
+    p(class="text-gray-600") Manage your entities and social media presence
+
+  // Overview content containers (used by overview.js)
+  div(class="grid grid-cols-1 gap-8")
+    // Current entity summary
+    div(class="bg-white rounded-xl shadow p-6")
+      h3(class="text-lg font-semibold text-gray-900 mb-4") Current entity
+      div(id="currentEntityInfo")
+
+    // Entities list and actions
+    div(class="bg-white rounded-xl shadow p-6")
+      div(class="flex items-center justify-between mb-4")
+        h3(class="text-lg font-semibold text-gray-900") Your entities
+        button(id="createEntityBtn" class="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-teal-400 text-white hover:bg-purple-900 focus:ring-purple-500")
+          i(data-lucide="plus" class="w-4 h-4 mr-2")
+          | Create entity
+      div(id="entitiesList" class="grid grid-cols-1 gap-4")
+
+  script.
+    window.__APP_DISABLE_ENTITY_HANDLERS__ = true;
+  script(src="/javascripts/overview.js")

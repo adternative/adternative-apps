@@ -1,8 +1,12 @@
 var express = require('express');
 var router = express.Router();
 var jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
+const sequelize = require('../config/database');
 const { User, Entity } = require('../models');
-const { authenticateToken, optionalAuth } = require('../middleware/auth');
+const { CoreDemographic } = require('../modules/core/models');
+const { authenticateToken, optionalAuth, requireRole } = require('../middleware/auth');
 const { getAvailableApps } = require('../utils/appLoader');
 const { withAvailableApps } = require('../middleware/paywall');
 
@@ -17,13 +21,132 @@ const AUTH_COOKIE_OPTIONS = {
 /* GET home page - requires authentication */
 router.get('/', authenticateToken, withAvailableApps, function(req, res, next) {
   // Render dashboard as the home page
-  res.render('home', { 
-    title: 'Home',
+  res.render('overview', { 
+    title: 'Overview',
     user: req.user,
     availableApps: req.availableApps || getAvailableApps()
   });
 });
 
+
+/* GET home page - requires authentication */
+router.get('/admin', authenticateToken, requireRole(['admin']), function(req, res, next) {
+  // Aggregate settings definitions from modules/*/config.json synchronously
+  const modulesDir = path.join(__dirname, '../modules');
+  const settingsDefs = [];
+  // Build a model name -> model and table name -> model map resiliently
+  const nameToModel = new Map();
+  const tableToModel = new Map();
+  try {
+    if (fs.existsSync(modulesDir)) {
+      const moduleNames = fs.readdirSync(modulesDir).filter((name) => {
+        const full = path.join(modulesDir, name);
+        return fs.statSync(full).isDirectory();
+      });
+      for (const moduleName of moduleNames) {
+        let exportedModels = null;
+        // Try index.js first
+        try {
+          const modelsIndex = path.join(modulesDir, moduleName, 'models', 'index.js');
+          if (fs.existsSync(modelsIndex)) {
+            // eslint-disable-next-line import/no-dynamic-require, global-require
+            const mod = require(modelsIndex);
+            exportedModels = (mod && mod.models) ? mod.models : mod;
+          }
+        } catch (_) { /* ignore */ }
+        // Fallback: per-file
+        if (!exportedModels) {
+          try {
+            const modelsDir = path.join(modulesDir, moduleName, 'models');
+            if (fs.existsSync(modelsDir)) {
+              const files = fs.readdirSync(modelsDir).filter((f) => f.endsWith('.js') && f !== 'index.js');
+              exportedModels = {};
+              for (const file of files) {
+                try {
+                  // eslint-disable-next-line import/no-dynamic-require, global-require
+                  const factory = require(path.join(modelsDir, file));
+                  if (typeof factory === 'function') {
+                    let modelInstance = null;
+                    try { modelInstance = factory(sequelize); } catch (_) {
+                      const base = path.basename(file, '.js');
+                      const guess = base.charAt(0).toUpperCase() + base.slice(1);
+                      if (sequelize.isDefined && sequelize.isDefined(guess)) {
+                        modelInstance = sequelize.model(guess);
+                      }
+                    }
+                    if (modelInstance) {
+                      exportedModels[modelInstance.name] = modelInstance;
+                    }
+                  }
+                } catch (_) { /* ignore */ }
+              }
+            }
+          } catch (_) { /* ignore */ }
+        }
+        if (exportedModels && typeof exportedModels === 'object') {
+          for (const key of Object.keys(exportedModels)) {
+            const model = exportedModels[key];
+            try {
+              const tableName = typeof model.getTableName === 'function' ? model.getTableName() : model.tableName;
+              if (tableName && !tableToModel.has(tableName)) tableToModel.set(tableName, model);
+              const modelName = model && model.name ? String(model.name) : key;
+              if (modelName && !nameToModel.has(modelName)) nameToModel.set(modelName, model);
+            } catch (_) { /* ignore */ }
+          }
+        }
+      }
+    }
+  } catch (_) { /* ignore */ }
+  try {
+    if (fs.existsSync(modulesDir)) {
+      const moduleNames = fs.readdirSync(modulesDir).filter((name) => {
+        const full = path.join(modulesDir, name);
+        return fs.statSync(full).isDirectory();
+      });
+      for (const moduleName of moduleNames) {
+        const configPath = path.join(modulesDir, moduleName, 'config.json');
+        if (!fs.existsSync(configPath)) continue;
+        try {
+          const json = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+          const settings = Array.isArray(json.settings) ? json.settings : [];
+          const moduleKey = String(moduleName || '').toLowerCase();
+          const moduleDisplayName = typeof json.name === 'string' ? json.name : moduleName;
+          const moduleIcon = typeof json.icon === 'string' ? json.icon : null;
+          settings.forEach((s) => {
+            if (!s || typeof s !== 'object') return;
+            const fields = Array.isArray(s.fields) ? s.fields.filter(Boolean) : [];
+            if (!fields.length) return;
+            let table = s.table;
+            if (!table && s.model) {
+              const modelName = String(s.model);
+              const model = nameToModel.get(modelName) || nameToModel.get(modelName.trim()) || null;
+              if (model) {
+                try { table = typeof model.getTableName === 'function' ? model.getTableName() : model.tableName; } catch (_) {}
+              }
+            }
+            if (!table) return;
+            settingsDefs.push({
+              moduleKey,
+              moduleName: moduleDisplayName,
+              moduleIcon,
+              name: s.name || table,
+              table,
+              model: s.model || null,
+              fields
+            });
+          });
+        } catch (_) { /* ignore invalid module config */ }
+      }
+    }
+  } catch (_) { /* ignore */ }
+
+  res.render('admin', { 
+    title: 'Admin',
+    user: req.user,
+    availableApps: req.availableApps || getAvailableApps(),
+    settingsDefs
+  });
+});
 
 // Render login page
 router.get('/login', (req, res) => {
@@ -205,6 +328,25 @@ router.post('/entity', authenticateToken, async (req, res) => {
     }
 
     const { name, industry, description, website } = req.body || {};
+    let demographics = null;
+    if (req.body && typeof req.body.demographics !== 'undefined') {
+      if (typeof req.body.demographics === 'string' && req.body.demographics.trim()) {
+        try {
+          demographics = JSON.parse(req.body.demographics);
+        } catch (_) {
+          if (prefersJson) {
+            return res.status(400).json({
+              success: false,
+              error: 'demographics must be valid JSON',
+              code: 'INVALID_DEMOGRAPHICS_JSON'
+            });
+          }
+          return res.redirect('/?openEntityModal=1&entityError=invalid_demographics');
+        }
+      } else if (req.body.demographics && typeof req.body.demographics === 'object') {
+        demographics = req.body.demographics;
+      }
+    }
 
     const trimmedName = typeof name === 'string' ? name.trim() : '';
     const trimmedIndustry = typeof industry === 'string' ? industry.trim() : '';
@@ -230,6 +372,15 @@ router.post('/entity', authenticateToken, async (req, res) => {
       user_id: req.user.id
     });
 
+    if (demographics) {
+      try {
+        await CoreDemographic.create({ entityId: entity.id, demographic: demographics });
+      } catch (e) {
+        // non-fatal for entity creation; log for observability
+        console.warn('Failed to persist demographics to core_demographics:', e.message);
+      }
+    }
+
     req.session.currentEntityId = entity.id;
 
     if (prefersJson) {
@@ -241,6 +392,7 @@ router.post('/entity', authenticateToken, async (req, res) => {
           industry: entity.industry,
           description: entity.description,
           website: entity.website,
+          demographics: demographics || null,
           createdAt: entity.createdAt,
           updatedAt: entity.updatedAt
         }

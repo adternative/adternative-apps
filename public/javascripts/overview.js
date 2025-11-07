@@ -24,36 +24,59 @@ class Dashboard {
   }
 
   setupEventListeners() {
-    // Logout button
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      this.logout();
-    });
+    // Logout button (guarded)
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        this.logout();
+      });
+    }
 
-    // Create entity modal
-    document.getElementById('createEntityBtn').addEventListener('click', () => {
-      this.showCreateEntityModal();
-    });
+    // Use global create entity modal if present; fallback to local handler
+    const createEntityBtn = document.getElementById('createEntityBtn');
+    if (createEntityBtn) {
+      createEntityBtn.addEventListener('click', () => {
+        // Prefer global modal exposed via app.js
+        if (window.app && typeof window.app.addEntity === 'function') {
+          window.app.addEntity();
+        } else {
+          this.showCreateEntityModal();
+        }
+      });
+    }
 
-    document.getElementById('closeModalBtn').addEventListener('click', () => {
-      this.hideCreateEntityModal();
-    });
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    if (closeModalBtn) {
+      closeModalBtn.addEventListener('click', () => {
+        this.hideCreateEntityModal();
+      });
+    }
 
-    document.getElementById('cancelEntityBtn').addEventListener('click', () => {
-      this.hideCreateEntityModal();
-    });
+    const cancelEntityBtn = document.getElementById('cancelEntityBtn');
+    if (cancelEntityBtn) {
+      cancelEntityBtn.addEventListener('click', () => {
+        this.hideCreateEntityModal();
+      });
+    }
 
     // Create entity form
-    document.getElementById('createEntityForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.createEntity();
-    });
+    const createEntityForm = document.getElementById('createEntityForm');
+    if (createEntityForm) {
+      createEntityForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.createEntity();
+      });
+    }
 
     // Close modal on outside click
-    document.getElementById('createEntityModal').addEventListener('click', (e) => {
-      if (e.target.id === 'createEntityModal') {
-        this.hideCreateEntityModal();
-      }
-    });
+    const createEntityModal = document.getElementById('createEntityModal');
+    if (createEntityModal) {
+      createEntityModal.addEventListener('click', (e) => {
+        if (e.target.id === 'createEntityModal') {
+          this.hideCreateEntityModal();
+        }
+      });
+    }
   }
 
   async loadEntities() {
@@ -96,6 +119,7 @@ class Dashboard {
 
   renderEntities() {
     const entitiesList = document.getElementById('entitiesList');
+    if (!entitiesList) return;
     
     if (this.entities.length === 0) {
       entitiesList.innerHTML = `
@@ -133,6 +157,7 @@ class Dashboard {
 
   renderCurrentEntity() {
     const currentEntityInfo = document.getElementById('currentEntityInfo');
+    if (!currentEntityInfo) return;
     
     if (this.currentEntity) {
       currentEntityInfo.innerHTML = `

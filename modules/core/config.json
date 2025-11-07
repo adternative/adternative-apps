@@ -2,6 +2,21 @@
   "name": "CORE",
   "icon": "circle-dot-dashed",
   "description": "AI-assisted marketing intelligence for adaptive media planning.",
+  "settings": [
+    {
+      "name": "Channels",
+      "model": "CoreChannel",
+      "fields": [
+        "name",
+        "category",
+        "avgCpm",
+        "avgCpc",
+        "avgCtr",
+        "avgConvRate",
+        "industryModifiers"
+      ]
+    }
+  ],
   "pricing": {
     "monthly": { "amount": 210, "currency": "USD" },
     "yearly": { "amount": 2100, "currency": "USD" }

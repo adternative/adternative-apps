@@ -1,7 +1,7 @@
-extends ../../../views/layout
+extends ../../../views/frame
 
 
-block content
+block pageContent
   - const lastAnalysis = workspace && workspace.lastAnalysisAt ? new Date(workspace.lastAnalysisAt) : null;
   - const summary = overview && overview.summary ? overview.summary : {};
   - const keywordSummary = summary && featureKeys ? summary[featureKeys.KEYWORD] : null;

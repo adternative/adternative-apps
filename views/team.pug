@@ -1,0 +1,50 @@
+extends frame
+
+block pageContent
+  // Header
+  div(class="mb-8")
+    h2(class="text-2xl font-bold text-gray-900") Team
+    p(class="text-gray-600") Manage members of the current entity
+
+  if typeof error !== 'undefined' && error
+    div(class="mb-4 p-4 rounded border border-red-200 bg-red-50 text-red-700") !{error}
+
+  // Members table
+  div(class="bg-white rounded-xl shadow overflow-hidden")
+    div(class="px-6 py-4 border-b border-gray-200 flex items-center justify-between")
+      h3(class="text-lg font-semibold text-gray-900") Members
+      if canManage
+        button(type="button" id="tm_add_inline_btn" class="inline-flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-teal-400 text-white hover:bg-purple-900 focus:ring-purple-500")
+          i(data-lucide="user-plus" class="w-4 h-4 mr-2")
+          | Add member
+    if members && members.length
+      div(class="overflow-x-auto")
+        table(class="min-w-full divide-y divide-gray-200" id="tm_members_table")
+          thead(class="bg-gray-50")
+            tr
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Name
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Email
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Role
+              th(class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Actions
+          tbody(class="bg-white divide-y divide-gray-200" id="tm_members_tbody")
+            each m in members
+              - var fullName = (m.first_name && m.last_name) ? `${m.first_name} ${m.last_name}` : (m.first_name || m.last_name || m.email)
+              tr
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-900")= fullName
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-700")= m.email
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 capitalize")= m.role
+                td(class="px-6 py-4 whitespace-nowrap text-sm text-gray-700")
+                  if canManage && m.role !== 'owner'
+                    form(action="/team/remove" method="POST" onsubmit="return confirm('Remove this member?')")
+                      input(type="hidden" name="email" value=m.email)
+                      button(type="submit" class="inline-flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-red-600 text-white hover:bg-red-700 focus:ring-red-500")
+                        i(data-lucide="trash-2" class="w-4 h-4 mr-2")
+                        | Delete
+                  else if m.role === 'owner'
+                    span(class="text-gray-400") Owner
+                  else
+                    span(class="text-gray-300") —
+    else
+      div(class="px-6 py-6 text-gray-600") No members yet.
+
+

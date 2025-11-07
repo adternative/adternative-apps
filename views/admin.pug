@@ -1,0 +1,438 @@
+extends layout
+
+block content
+  // Container ensures spacing below fixed navbar and consistent padding
+  div(class="pt-20 p-8 w-full max-w-7xl mx-auto")
+    // Back to Home
+    div(class="mb-4")
+      a(href="/" class="inline-flex items-center text-sm text-teal-400 hover:text-white")
+        i(data-lucide="arrow-left" class="w-4 h-4 mr-2")
+        | Back to Home
+    // Header
+    div(class="mb-8 flex items-center justify-between")
+      div(class="flex items-center space-x-4")
+        div(class="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-purple-600 text-white flex items-center justify-center shadow-lg")
+          i(data-lucide="shield" class="w-6 h-6")
+        div
+          h2(class="text-2xl font-bold text-teal-400") Admin Console
+          p(class="text-purple-600") Manage users and module settings
+      span(class="hidden md:inline-flex items-center text-xs px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 font-medium") Internal Only
+
+    // Tabs
+    div(class="mb-8")
+      nav(class="w-full flex items-center")
+        div(class="bg-white/70 backdrop-blur rounded-xl p-1 shadow-sm inline-flex")
+          a(href="#" data-tab="users" class="admin-tab inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-purple-900 bg-white shadow")
+            i(data-lucide="users" class="w-4 h-4 mr-2")
+            | Users
+          // Dynamically generated settings tabs from server-provided settingsDefs
+          if typeof settingsDefs !== 'undefined' && settingsDefs && settingsDefs.length
+            each s in settingsDefs
+              - var sIcon = (s.moduleIcon && typeof s.moduleIcon === 'string' && s.moduleIcon.trim()) ? s.moduleIcon.trim() : 'sliders'
+              a(href="#" data-tab=('settings:' + s.table) data-table=s.table class="admin-tab inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-teal-700 hover:text-purple-900 hover:bg-white/80 transition")
+                i(data-lucide=sIcon class="w-4 h-4 mr-2")
+                | #{s.name}
+
+    // Users Tab
+    div(id="tab-users" class="space-y-4")
+      // Users table
+      div(class="bg-white rounded-2xl shadow-lg p-6 border border-purple-100")
+        div(class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4")
+          h3(class="text-lg font-semibold text-gray-900 flex items-center")
+            i(data-lucide="users" class="w-4 h-4 mr-2 text-teal-500")
+            | Users
+          div(class="flex items-center gap-3")
+            div(class="relative")
+              i(data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400")
+              input(type="text" id="usersSearch" placeholder="Search users…" class="w-72 pl-9 pr-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm")
+            div(id="usersInfo" class="text-sm text-gray-500 hidden md:block")
+        div(class="overflow-x-auto")
+          table(class="min-w-full divide-y divide-gray-200")
+            thead(class="bg-gray-50 sticky top-0 z-10")
+            tr
+                th(scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Name
+                th(scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Email
+                th(scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Role
+                th(scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Status
+                th(scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") Owned Entities
+                th(scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider") Actions
+            tbody(id="usersTableBody" class="bg-white divide-y divide-gray-200")
+    // User entities drawer
+    div(id="userEntitiesPanel" class="hidden bg-white rounded-2xl shadow-lg p-6 border border-teal-100")
+      div(class="flex items-center justify-between mb-4")
+        h3(id="entitiesPanelTitle" class="text-lg font-semibold text-gray-900") Owned Entities
+        button(id="closeEntitiesPanel" class="inline-flex items-center px-3 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200")
+          i(data-lucide="x" class="w-4 h-4 mr-1")
+          | Close
+      div(id="entitiesPanelBody" class="grid grid-cols-1 gap-3")
+
+    // Settings Tab
+    div(id="tab-settings" class="space-y-4 hidden")
+      // Definitions + data
+      div(class="bg-white rounded-2xl shadow-lg p-6 border border-purple-100")
+        div(class="flex items-center justify-between mb-4")
+          h3(class="text-lg font-semibold text-gray-900")
+            span(id="settingsTitleText") Module Settings
+          div(id="settingsInfo" class="text-sm text-gray-500")
+        div(id="settingsContainer" class="space-y-6")
+
+  // Initialize icons for layout navbar when using layout directly and expose settingsDefs
+  script.
+    try { if (window.lucide && typeof window.lucide.createIcons === 'function') { window.lucide.createIcons(); } } catch (e) {}
+    window.__SETTINGS_DEFS__ = !{JSON.stringify(typeof settingsDefs !== 'undefined' ? settingsDefs : [])};
+  script.
+    (function(){
+      const qs = (s, el=document) => el.querySelector(s);
+      const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
+      const getTabs = () => Array.from(document.querySelectorAll('.admin-tab'));
+      const tabViews = { users: qs('#tab-users'), settings: qs('#tab-settings') };
+      let currentTab = 'users';
+      let currentSettingsKey = null; // e.g., table name
+
+      function escapeAttr(v){
+        return String(v ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      }
+
+      function switchTab(key){
+        currentTab = key;
+        getTabs().forEach(t => {
+          const active = t.getAttribute('data-tab') === key;
+          if (active) {
+            t.className = 'admin-tab inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-purple-900 bg-white shadow';
+          } else {
+            t.className = 'admin-tab inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-teal-700 hover:text-purple-900 hover:bg-white/80 transition';
+          }
+        });
+        const isUsers = key === 'users';
+        tabViews.users.classList.toggle('hidden', !isUsers);
+        tabViews.settings.classList.toggle('hidden', isUsers);
+        // Render settings table if a settings tab is selected
+        if (!isUsers && key.startsWith('settings:')) {
+          const table = key.split(':')[1];
+          const def = settingsDefs.find(d => d.table === table);
+          if (def) {
+            currentSettingsKey = table;
+            renderSettings(def);
+          }
+        }
+        try { if (window.lucide && typeof window.lucide.createIcons === 'function') { window.lucide.createIcons(); } } catch (e) {}
+      }
+
+      getTabs().forEach(t => t.addEventListener('click', (e)=>{ 
+        e.preventDefault(); 
+        const dt = t.getAttribute('data-tab');
+        const table = t.getAttribute('data-table');
+        const key = dt || (table ? `settings:${table}` : 'users');
+        switchTab(key);
+      }));
+
+      // USERS TAB
+      const usersBody = qs('#usersTableBody');
+      const usersInfo = qs('#usersInfo');
+      const usersSearch = qs('#usersSearch');
+      const entitiesPanel = qs('#userEntitiesPanel');
+      const entitiesPanelTitle = qs('#entitiesPanelTitle');
+      const entitiesPanelBody = qs('#entitiesPanelBody');
+      const closeEntitiesBtn = qs('#closeEntitiesPanel');
+      closeEntitiesBtn.addEventListener('click', ()=>{ entitiesPanel.classList.add('hidden'); entitiesPanelBody.innerHTML=''; });
+      let loadedUsers = [];
+
+      function renderUsers(list){
+        if (!list.length){ usersBody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">No users found.</td></tr>'; return; }
+        usersBody.innerHTML = '';
+        const total = list.length;
+        const admins = list.filter(u=>u.role==='admin').length;
+        const managers = list.filter(u=>u.role==='manager').length;
+        usersInfo.textContent = `${total} users · ${admins} admins · ${managers} managers`;
+        for (const u of list){
+          const tr = document.createElement('tr');
+          const name = (u.firstName||'') + ' ' + (u.lastName||'');
+          const statusPill = u.isActive
+            ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>'
+            : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Inactive</span>';
+          const toggleLabel = u.isActive ? 'Deactivate' : 'Activate';
+          tr.innerHTML = `
+            <td class=\"px-4 py-3 text-sm text-gray-900\">${name}</td>
+            <td class=\"px-4 py-3 text-sm text-gray-500\">${u.email}</td>
+            <td class=\"px-4 py-3 text-sm\">
+              <select data-user-id=\"${u.id}\" class=\"role-select w-40 px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-transparent\">
+                <option value=\"user\" ${u.role==='user'?'selected':''}>user</option>
+                <option value=\"manager\" ${u.role==='manager'?'selected':''}>manager</option>
+                <option value=\"admin\" ${u.role==='admin'?'selected':''}>admin</option>
+              </select>
+            </td>
+            <td class=\"px-4 py-3 text-sm\">${statusPill}</td>
+            <td class=\"px-4 py-3 text-sm\"><button data-user-id=\"${u.id}\" data-user-name=\"${name}\" class=\"view-entities inline-flex items-center px-3 py-1 rounded-lg bg-teal-400 text-white hover:bg-purple-900\">View</button></td>
+            <td class=\"px-4 py-3 text-sm text-right\"><button data-user-id=\"${u.id}\" class=\"toggle-status inline-flex items-center px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800\">${toggleLabel}</button></td>`;
+          usersBody.appendChild(tr);
+        }
+        qsa('select.role-select', usersBody).forEach(sel => sel.addEventListener('change', async ()=>{
+          const userId = sel.getAttribute('data-user-id');
+          const role = sel.value;
+          sel.disabled = true;
+          try{
+            const resp = await fetch(`/users/${userId}/role`, { method:'PUT', headers:{ 'Content-Type':'application/json','Accept':'application/json' }, body: JSON.stringify({ role }) });
+            const j = await resp.json();
+            if(!j.success){ throw new Error(j.error||'Failed to update role'); }
+            const target = loadedUsers.find(u=>u.id===userId);
+            if (target) target.role = role;
+          } catch(err){
+            alert('Failed to update role: ' + err.message);
+          } finally {
+            sel.disabled = false;
+          }
+        }));
+        qsa('button.view-entities', usersBody).forEach(btn => btn.addEventListener('click', async ()=>{
+          const userId = btn.getAttribute('data-user-id');
+          const userName = btn.getAttribute('data-user-name');
+          entitiesPanelTitle.textContent = `Owned Entities — ${userName}`;
+          entitiesPanel.classList.remove('hidden');
+          entitiesPanelBody.innerHTML = '<div class="text-gray-500">Loading…</div>';
+          try {
+            const resp = await fetch(`/users/${userId}`, { headers:{ 'Accept':'application/json' } });
+            const j = await resp.json();
+            if(!j.success) throw new Error(j.error||'Failed');
+            const ents = (j.user && j.user.entities) || [];
+            if(!ents.length){ entitiesPanelBody.innerHTML = '<div class="text-gray-500">No entities.</div>'; return; }
+            entitiesPanelBody.innerHTML = '';
+            for(const en of ents){
+              const card = document.createElement('div');
+              card.className = 'border rounded-lg p-4 hover:shadow';
+              card.innerHTML = `<div class="font-medium text-gray-900">${en.name}</div><div class="text-sm text-gray-500">${en.industry||''}</div>`;
+              entitiesPanelBody.appendChild(card);
+            }
+          } catch(err){
+            entitiesPanelBody.innerHTML = '<div class="text-red-600">'+err.message+'</div>';
+          }
+        }));
+        qsa('button.toggle-status', usersBody).forEach(btn => btn.addEventListener('click', async ()=>{
+          const userId = btn.getAttribute('data-user-id');
+          btn.disabled = true;
+          try {
+            const resp = await fetch(`/users/${userId}/toggle-status`, { method:'PUT', headers:{ 'Accept':'application/json' } });
+            const j = await resp.json();
+            if(!j.success) throw new Error(j.error||'Failed');
+            const idx = loadedUsers.findIndex(u=>u.id===userId);
+            if (idx>=0) loadedUsers[idx].isActive = j.user.isActive;
+            const q = (usersSearch && usersSearch.value || '').toLowerCase().trim();
+            const filtered = q ? loadedUsers.filter(u => `${u.firstName||''} ${u.lastName||''} ${u.email||''}`.toLowerCase().includes(q)) : loadedUsers;
+            renderUsers(filtered);
+          } catch(err){
+            alert('Failed to toggle status: ' + err.message);
+          } finally {
+            btn.disabled = false;
+          }
+        }));
+      }
+
+      async function fetchUsers(){
+        usersBody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">Loading users…</td></tr>';
+        try {
+          const res = await fetch('/users', { headers: { 'Accept':'application/json' } });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error||'Failed');
+          loadedUsers = (data.users || []).map(u=>({ ...u }));
+          const q = (usersSearch && usersSearch.value || '').toLowerCase().trim();
+          const filtered = q ? loadedUsers.filter(u => `${u.firstName||''} ${u.lastName||''} ${u.email||''}`.toLowerCase().includes(q)) : loadedUsers;
+          renderUsers(filtered);
+        } catch (e){
+          usersBody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-red-600">'+(e.message||'Error loading users')+'</td></tr>';
+        }
+      }
+
+      if (usersSearch) {
+        usersSearch.addEventListener('input', ()=>{
+          const q = (usersSearch.value||'').toLowerCase().trim();
+          const filtered = q ? loadedUsers.filter(u => `${u.firstName||''} ${u.lastName||''} ${u.email||''}`.toLowerCase().includes(q)) : loadedUsers;
+          renderUsers(filtered);
+        });
+      }
+
+      // SETTINGS TABS + CONTENT
+      const settingsContainer = qs('#settingsContainer');
+      const settingsInfo = qs('#settingsInfo');
+      let settingsDefs = Array.isArray(window.__SETTINGS_DEFS__) ? window.__SETTINGS_DEFS__ : [];
+
+      async function renderSettings(def){
+        // Set header subtitle to module/table
+        settingsInfo.textContent = `${def.moduleName} · ${def.table}`;
+        const titleEl = document.getElementById('settingsTitleText');
+        if (titleEl) { titleEl.textContent = def.name || def.table; }
+
+        // Fetch field meta (kinds/inputs)
+        const metaResp = await fetch(`/admin/settings/${encodeURIComponent(def.table)}/meta?fields=${encodeURIComponent(def.fields.join(','))}`, { headers:{ 'Accept':'application/json' } });
+        const metaJson = await metaResp.json();
+        const fieldMeta = (metaJson && metaJson.fieldMeta) || {};
+
+        const fieldInputHtml = (f) => {
+          const meta = fieldMeta[f] || { input: 'text' };
+          const base = 'w-full md:w-56 px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-transparent';
+          switch (meta.input) {
+            case 'number': return `<input type="number" step="any" data-field="${f}" placeholder="${f}" class="${base}"/>`;
+            case 'checkbox': return `<input type="checkbox" data-field="${f}" class="h-4 w-4 text-teal-500"/>`;
+            case 'date': return `<input type="date" data-field="${f}" class="${base}"/>`;
+            case 'textarea': return `<textarea data-field="${f}" placeholder="${f}" class="${base}"></textarea>`;
+            case 'image-url': return `<input type="text" data-field="${f}" placeholder="Image URL" class="${base}"/>`;
+            case 'tags': return `<input type="text" data-field="${f}" placeholder="tag1, tag2" class="${base}"/>`;
+            case 'json': return `<textarea data-field="${f}" placeholder="{ }" class="${base}"></textarea>`;
+            default: return `<input type="text" data-field="${f}" placeholder="${f}" class="${base}"/>`;
+          }
+        };
+
+        settingsContainer.innerHTML = `
+          <div class=\"mb-4\"> 
+            <div class=\"bg-gray-50/70 border border-gray-200 rounded-xl p-4\"> 
+              <div class=\"grid grid-cols-1 md:grid-cols-3 gap-3\" id=\"newRowInputs\"> 
+                ${def.fields.map(f=>`
+                  <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">${f}</label>
+                    ${fieldInputHtml(f)}
+                  </div>
+                `).join('')} 
+              </div> 
+              <div class=\"mt-3 flex justify-end\"> 
+                <button id=\"createRow\" class=\"inline-flex items-center px-3 py-1 rounded-lg bg-teal-400 text-white hover:bg-purple-900\">Create</button> 
+              </div> 
+            </div> 
+          </div> 
+          <div class=\"overflow-x-auto\"> 
+            <table class=\"min-w-full divide-y divide-gray-200\"> 
+              <thead class=\"bg-gray-50 sticky top-0 z-10\"> 
+                <tr> 
+                  <th class=\"px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">ID</th> 
+                  ${def.fields.map(f=>`<th class=\"px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider\">${f}</th>`).join('')} 
+                  <th class=\"px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider\">Save</th> 
+                </tr> 
+              </thead> 
+              <tbody class=\"bg-white divide-y divide-gray-200\"></tbody> 
+            </table> 
+          </div>`;
+        const tbody = settingsContainer.querySelector('tbody');
+        const createBtn = settingsContainer.querySelector('#createRow');
+        if (createBtn) {
+          createBtn.addEventListener('click', async ()=>{
+            const inputNodes = Array.from(settingsContainer.querySelectorAll('#newRowInputs [data-field]'));
+            const payload = {};
+            inputNodes.forEach(inp=>{
+              const key = inp.getAttribute('data-field');
+              const meta = fieldMeta[key] || {};
+              let val = null;
+              if (meta.input === 'checkbox') {
+                val = !!inp.checked;
+              } else if (meta.input === 'number') {
+                const n = parseFloat(inp.value);
+                val = Number.isNaN(n) ? null : n;
+              } else if (meta.input === 'tags') {
+                val = String(inp.value || '').split(',').map(s=>s.trim()).filter(Boolean);
+              } else if (meta.input === 'json') {
+                try { val = inp.value ? JSON.parse(inp.value) : null; } catch (_) { val = null; }
+              } else {
+                val = inp.value;
+              }
+              payload[key] = val;
+            });
+            const original = createBtn.textContent;
+            createBtn.disabled = true; createBtn.textContent = 'Creating…';
+            try {
+              const resp = await fetch(`/admin/settings/${encodeURIComponent(def.table)}`, { method:'POST', headers:{ 'Content-Type':'application/json','Accept':'application/json' }, body: JSON.stringify(payload) });
+              const j = await resp.json();
+              if(!j.success) throw new Error(j.error||'Failed');
+              // Clear inputs
+              inputNodes.forEach(inp=>{ if (inp.type === 'checkbox') { inp.checked = false; } else { inp.value=''; } });
+              // Reload rows to include the new one
+              await loadRows();
+            } catch(err){
+              alert('Failed to create: ' + err.message);
+            } finally {
+              createBtn.disabled = false; createBtn.textContent = original;
+            }
+          });
+        }
+
+        function pill(text){
+          return `<span class=\"inline-flex items-center px-2 py-0.5 mr-1 mb-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100\">${escapeAttr(text)}</span>`;
+        }
+
+        async function loadRows(){
+          tbody.innerHTML = '<tr><td colspan="'+(def.fields.length+2)+'" class="px-4 py-4 text-center text-gray-500">Loading…</td></tr>';
+          try{
+            const resp = await fetch(`/admin/settings/${encodeURIComponent(def.table)}?fields=${encodeURIComponent(['id',...def.fields].join(','))}`, { headers:{ 'Accept':'application/json' } });
+            const j = await resp.json();
+            if(!j.success) throw new Error(j.error||'Failed');
+            const rows = j.rows || [];
+            if(!rows.length){ tbody.innerHTML = '<tr><td colspan="'+(def.fields.length+2)+'" class="px-4 py-4 text-center text-gray-500">No rows.</td></tr>'; return; }
+            tbody.innerHTML = '';
+            for(const r of rows){
+              const tr = document.createElement('tr');
+              const cellsHtml = def.fields.map(f=>{
+                const meta = fieldMeta[f] || {};
+                const v = r[f];
+                if (meta.kind === 'image' && v) {
+                  return `<td class=\"px-4 py-3 text-sm\"><img src=\"${escapeAttr(v)}\" alt=\"${escapeAttr(f)}\" class=\"h-10 w-10 object-cover rounded-md border\"/></td>`;
+                }
+                if (meta.kind === 'array' && Array.isArray(v)) {
+                  return `<td class=\"px-4 py-3 text-sm\">${v.map(pill).join('')}</td>`;
+                }
+                if (meta.kind === 'json' && v && typeof v === 'object') {
+                  const short = escapeAttr(JSON.stringify(v));
+                  return `<td class=\"px-4 py-3 text-xs text-gray-600\"><code class=\"bg-gray-50 border border-gray-200 rounded px-1 py-0.5\">${short}</code></td>`;
+                }
+                if (meta.editableInline) {
+                  const base = 'w-56 px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-400 focus:border-transparent';
+                  const type = meta.input === 'number' ? 'number' : meta.input === 'date' ? 'date' : 'text';
+                  const value = (v === null || typeof v === 'undefined') ? '' : v;
+                  if (type === 'number') {
+                    return `<td class=\"px-4 py-3 text-sm\"><input type=\"number\" step=\"any\" data-field=\"${f}\" value=\"${escapeAttr(value)}\" class=\"${base}\"/></td>`;
+                  }
+                  if (type === 'date') {
+                    const iso = value ? String(value).slice(0, 10) : '';
+                    return `<td class=\"px-4 py-3 text-sm\"><input type=\"date\" data-field=\"${f}\" value=\"${escapeAttr(iso)}\" class=\"${base}\"/></td>`;
+                  }
+                  return `<td class=\"px-4 py-3 text-sm\"><input data-field=\"${f}\" value=\"${escapeAttr(value)}\" class=\"${base}\"/></td>`;
+                }
+                const text = (v === null || typeof v === 'undefined') ? '' : String(v);
+                return `<td class=\"px-4 py-3 text-sm text-gray-700\">${escapeAttr(text)}</td>`;
+              }).join('');
+              tr.innerHTML = `
+                <td class=\"px-4 py-3 text-sm text-gray-500\">${r.id}</td>
+                ${cellsHtml}
+                <td class=\"px-4 py-3 text-sm text-right\"><button data-id=\"${r.id}\" class=\"save inline-flex items-center px-3 py-1 rounded-lg bg-teal-400 text-white hover:bg-purple-900\">Save</button></td>`;
+              tbody.appendChild(tr);
+            }
+            Array.from(tbody.querySelectorAll('button.save')).forEach(btn => btn.addEventListener('click', async ()=>{
+              const id = btn.getAttribute('data-id');
+              const row = btn.closest('tr');
+              const inputs = Array.from(row.querySelectorAll('input[data-field]'));
+              const payload = {};
+              inputs.forEach(inp=>{ const k = inp.getAttribute('data-field'); const meta = fieldMeta[k]||{}; if (meta.input==='number'){ const n = parseFloat(inp.value); payload[k] = Number.isNaN(n) ? null : n; } else { payload[k] = inp.value; } });
+              const original = btn.textContent;
+              btn.disabled = true; btn.textContent = 'Saving…';
+              try{
+                const resu = await fetch(`/admin/settings/${encodeURIComponent(def.table)}/${encodeURIComponent(id)}`, { method:'PUT', headers:{ 'Content-Type':'application/json','Accept':'application/json' }, body: JSON.stringify(payload) });
+                const jj = await resu.json();
+                if(!jj.success) throw new Error(jj.error||'Failed');
+                btn.textContent = 'Saved';
+                btn.classList.remove('bg-teal-400');
+                btn.classList.add('bg-green-500');
+                setTimeout(()=>{ btn.textContent = original; btn.classList.add('bg-teal-400'); btn.classList.remove('bg-green-500'); }, 1200);
+              } catch(err){
+                alert('Failed to save: ' + err.message);
+              } finally {
+                btn.disabled = false;
+              }
+            }));
+          } catch(err){
+            tbody.innerHTML = '<tr><td colspan="'+(def.fields.length+2)+'" class="px-4 py-4 text-center text-red-600">'+err.message+'</td></tr>';
+          }
+        }
+        loadRows();
+      }
+
+      // Auto-select first settings tab if any (but keep Users as default view)
+      // Uncomment to auto-open first settings: if (settingsDefs.length > 0) switchTab(`settings:${settingsDefs[0].table}`);
+
+      // Init
+      fetchUsers();
+      // Tabs come from server; nothing to fetch here
+    })();
+

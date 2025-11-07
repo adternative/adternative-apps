@@ -1,6 +1,7 @@
 const express = require('express');
 const { Op } = require('sequelize');
 const { Entity, ModuleSubscription } = require('../models');
+const { uploadEntityLogo } = require('../config/storage');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { currentEntity, requireCurrentEntity, getUserEntities, switchEntity } = require('../middleware/entity');
 const { PlatformAccount } = require('../modules/flow/models');
@@ -186,6 +187,7 @@ router.get('/', getUserEntities, async (req, res) => {
         id: entity.id,
         name: entity.name,
         industry: entity.industry,
+        photo: entity.photo,
         description: entity.description,
         website: entity.website,
         createdAt: entity.createdAt,
@@ -217,6 +219,7 @@ router.get('/current', currentEntity, async (req, res) => {
         id: req.currentEntity.id,
         name: req.currentEntity.name,
         industry: req.currentEntity.industry,
+        photo: req.currentEntity.photo,
         description: req.currentEntity.description,
         website: req.currentEntity.website,
         socialMediaPlatforms: req.currentEntity.socialMediaPlatforms,
@@ -238,7 +241,7 @@ router.get('/current', currentEntity, async (req, res) => {
 // Create new entity
 router.post('/', async (req, res) => {
   try {
-    const { name, industry, description, website } = req.body;
+    const { name, industry, description, website, photo } = req.body;
 
     if (!name || !industry) {
       return res.status(400).json({
@@ -246,6 +249,8 @@ router.post('/', async (req, res) => {
         code: 'MISSING_REQUIRED_FIELDS'
       });
     }
+
+    
 
     const entity = await Entity.create({
       name,
@@ -255,6 +260,14 @@ router.post('/', async (req, res) => {
       user_id: req.user.id
     });
 
+    if (photo) {
+      const uploaded = await uploadEntityLogo({ buffer: Buffer.from(photo, 'base64'), originalName: 'entity-photo.png', entityId: entity.id, publicRead: true });
+      if (uploaded && (uploaded.url || uploaded.key)) {
+        const url = uploaded.url || require('../config/storage').getPublicUrl(uploaded.key);
+        await entity.update({ photo: url });
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Entity created successfully',
@@ -262,6 +275,7 @@ router.post('/', async (req, res) => {
         id: entity.id,
         name: entity.name,
         industry: entity.industry,
+        photo: entity.photo,
         description: entity.description,
         website: entity.website,
         createdAt: entity.createdAt,
@@ -583,6 +597,7 @@ router.get('/:entityId', async (req, res) => {
         id: entity.id,
         name: entity.name,
         industry: entity.industry,
+        photo: entity.photo,
         description: entity.description,
         website: entity.website,
         createdAt: entity.createdAt,
@@ -633,6 +648,7 @@ router.put('/:entityId', async (req, res) => {
         id: entity.id,
         name: entity.name,
         industry: entity.industry,
+        photo: entity.photo,
         description: entity.description,
         website: entity.website,
         createdAt: entity.createdAt,
@@ -644,6 +660,60 @@ router.put('/:entityId', async (req, res) => {
     res.status(500).json({
       error: 'Failed to update entity',
       code: 'UPDATE_ENTITY_ERROR'
+    });
+  }
+});
+
+// Update entity photo
+router.put('/:entityId/photo', async (req, res) => {
+  try {
+    const { entityId } = req.params;
+    const { photoData, photoFilename, remove } = req.body || {};
+
+    const entity = await Entity.findOne({
+      where: {
+        id: entityId,
+        user_id: req.user.id,
+        is_active: true
+      }
+    });
+
+    if (!entity) {
+      return res.status(404).json({
+        error: 'Entity not found',
+        code: 'ENTITY_NOT_FOUND'
+      });
+    }
+
+    if (remove === true) {
+      await entity.update({ photo: null });
+      return res.json({ success: true, message: 'Photo removed', photo: null });
+    }
+
+    if (!photoData || typeof photoData !== 'string') {
+      return res.status(400).json({
+        error: 'photoData (base64) is required',
+        code: 'MISSING_PHOTO_DATA'
+      });
+    }
+
+    const matches = photoData.match(/^data:([^;]+);base64,(.*)$/);
+    const base64Payload = matches ? matches[2] : photoData;
+    const buffer = Buffer.from(base64Payload, 'base64');
+    const originalName = typeof photoFilename === 'string' && photoFilename.trim() ? photoFilename.trim() : 'entity-photo.png';
+    const uploaded = await uploadEntityLogo({ buffer, originalName, entityId: entity.id, publicRead: true });
+    const url = uploaded && (uploaded.url || (uploaded.key ? require('../config/storage').getPublicUrl(uploaded.key) : null));
+    if (!url) {
+      return res.status(500).json({ error: 'Upload failed', code: 'PHOTO_UPLOAD_FAILED' });
+    }
+    await entity.update({ photo: url });
+
+    return res.json({ success: true, message: 'Photo updated', photo: url, entityId: entity.id });
+  } catch (error) {
+    console.error('Update entity photo error:', error);
+    res.status(500).json({
+      error: 'Failed to update photo',
+      code: 'UPDATE_PHOTO_ERROR'
     });
   }
 });

@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { sequelize, User, Entity } = require('../models');
+const { sequelize } = require('../models');
 const fs = require('fs');
 const path = require('path');
 
@@ -39,13 +39,18 @@ async function resetDatabase() {
     console.log('Resetting database models (including modules)...');
     
     await sequelize.sync({ force: true }); // Drops all tables and recreates them
-    console.log('✓ Database models reset successfully.');
+    console.log('✓ Database models reset successfully.');    
     
     console.log('\n✓ Database reset completed successfully!');
     process.exit(0);
   } catch (error) {
     console.error('✗ Database reset failed:', error);
     process.exit(1);
+  }
+  finally {
+    console.log('Disconnecting from database...');
+    await sequelize.close();
+    console.log('✓ Database connection closed successfully.');
   }
 }
 

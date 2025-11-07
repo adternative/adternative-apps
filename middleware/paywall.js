@@ -6,7 +6,7 @@ const { Entity, ModuleSubscription } = require('../models');
 // Constants
 const ACTIVE_SUBSCRIPTION_STATUSES = ModuleSubscription.ACTIVE_STATUSES || ['active', 'trialing'];
 const GRACE_PERIOD_MS = (subscriptionPlans?.gracePeriodDays || 0) * 24 * 60 * 60 * 1000;
-const DEFAULT_FREE_MODULES = new Set(['core']);
+const DEFAULT_FREE_MODULES = new Set([]);
 
 // Normalize module key from path or canonical name
 const normalizeKey = (key) => String(key || '').trim().toLowerCase();
@@ -132,14 +132,14 @@ const withAvailableApps = async (req, res, next) => {
 
     const allowedKeys = mergeAllowedKeys(getEntityAllowedApps(entity), subscriptionKeys);
 
-    // If no explicit entitlements, default to showing all modules for discovery
-    if (!entity || allowedKeys.length === 0) {
-      req.availableApps = allApps.map((app) => ({
-        ...app,
-        isAccessible: DEFAULT_FREE_MODULES.has(resolveModuleKeyFromPath(app.path))
-      }));
-      return next();
-    }
+  // If no explicit entitlements, only expose genuinely free modules
+  if (!entity || allowedKeys.length === 0) {
+    const freeApps = allApps
+      .filter((app) => DEFAULT_FREE_MODULES.has(resolveModuleKeyFromPath(app.path)))
+      .map((app) => ({ ...app, isAccessible: true }));
+    req.availableApps = freeApps;
+    return next();
+  }
 
     const filtered = allApps.filter((app) => {
       const keyFromPath = resolveModuleKeyFromPath(app.path);

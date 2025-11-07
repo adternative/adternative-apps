@@ -9,6 +9,11 @@ require('dotenv').config();
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var entitiesRouter = require('./routes/entities');
+var adminApiRouter = require('./routes/admin');
+var goalsRouter = require('./routes/goals');
+var demographicsRouter = require('./routes/demographics');
+var teamRouter = require('./routes/team');
+var filesRouter = require('./routes/files');
 
 // Import middleware and utilities
 const { requireAuth } = require('./middleware/global');
@@ -44,6 +49,35 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Global authentication middleware (except for public routes)
 app.use(requireAuth);
+
+// Make a helper available in templates to safely render Wasabi images
+app.use((req, res, next) => {
+  try {
+    const storage = require('./config/storage');
+    const wasabiHost = new URL(storage.endpoint).host;
+    const bucket = storage.bucket;
+    res.locals.signedImageUrl = (src) => {
+      if (!src || typeof src !== 'string') return '';
+      const trimmed = src.trim();
+      const isAbsolute = /^https?:\/\//i.test(trimmed);
+      if (!isAbsolute) {
+        // Treat as key
+        return `/files?key=${encodeURIComponent(trimmed.replace(/^\/+/, ''))}`;
+      }
+      // If absolute and not Wasabi, return as-is
+      let host = '';
+      try { host = new URL(trimmed).host; } catch (_) {}
+      if (!host) return trimmed;
+      const isVirtualHosted = host.startsWith(`${bucket}.`);
+      const isWasabi = host === wasabiHost || isVirtualHosted || /wasabisys\.com$/i.test(host);
+      if (!isWasabi) return trimmed;
+      return `/files?url=${encodeURIComponent(trimmed)}`;
+    };
+  } catch (_) {
+    res.locals.signedImageUrl = (src) => (src || '');
+  }
+  next();
+});
 
 // Attach user entities and default-select first entity if none selected
 app.use(async (req, res, next) => {
@@ -87,6 +121,7 @@ app.use(async (req, res, next) => {
     }
     res.locals.selectedEntityId = selected ? selected.id : '';
     res.locals.selectedEntityName = selected ? selected.name : '';
+    res.locals.selectedEntityPhoto = selected ? selected.photo : '';
 
     // Default-select first entity if none selected
     if (!req.session.currentEntityId && entities.length > 0) {
@@ -101,8 +136,13 @@ app.use(async (req, res, next) => {
 
 // Routes
 app.use('/', indexRouter);
+app.use('/files', filesRouter);
 app.use('/users', usersRouter);
 app.use('/entities', entitiesRouter);
+app.use('/admin', adminApiRouter);
+app.use('/goals', goalsRouter);
+app.use('/demographics', demographicsRouter);
+app.use('/team', teamRouter);
 
 // Legacy aliases: support /app/* and /module/* by redirecting to /*
 app.use(['/app', '/module'], (req, res) => {

@@ -3,21 +3,30 @@ const User = require('./User');
 const Entity = require('./Entity');
 const EntityUsers = require('./EntityUsers');
 const ModuleSubscription = require('./ModuleSubscription');
+const Demographic = require('./Demographic');
+const Goal = require('./Goal');
 
 
-// Define associations
-
-// User - Entity associations
-User.hasMany(Entity, {
-  foreignKey: 'user_id',
-  as: 'entities',
-  onDelete: 'CASCADE'
+Demographic.belongsTo(Entity, {
+  foreignKey: 'entity_id',
+  as: 'entity'
 });
 
-Entity.belongsTo(User, {
-  foreignKey: 'user_id',
-  as: 'owner'
+Entity.hasMany(Demographic, {
+  foreignKey: 'entity_id',
+  as: 'demographics'
 });
+
+Demographic.hasMany(Goal, {
+  foreignKey: 'demographic_id',
+  as: 'goals'
+});
+
+Goal.belongsTo(Demographic, {
+  foreignKey: 'demographic_id',
+  as: 'demographic'
+});
+
 
 // Many-to-many membership with roles via EntityMember pivot
 User.belongsToMany(Entity, {
@@ -68,5 +77,7 @@ module.exports = {
   Entity,
   EntityUsers,
   ModuleSubscription,
+  Demographic,
+  Goal,
   syncDatabase
 };

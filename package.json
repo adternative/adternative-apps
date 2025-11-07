@@ -11,6 +11,9 @@
     "update-db": "node scripts/update-db.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.679.0",
+    "@aws-sdk/lib-storage": "^3.679.0",
+    "@aws-sdk/s3-request-presigner": "^3.679.0",
     "axios": "^1.4.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "~1.4.4",
@@ -21,6 +24,7 @@
     "http-errors": "~1.6.3",
     "jsonwebtoken": "^9.0.0",
     "lucide": "^0.545.0",
+    "mime-types": "^2.1.35",
     "morgan": "~1.9.1",
     "mysql2": "^3.3.0",
     "node-cron": "^4.2.1",

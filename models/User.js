@@ -37,6 +37,23 @@ const User = sequelize.define('User', {
       len: [1, 50]
     }
   },
+  photo: {
+    field: 'photo',
+    type: DataTypes.STRING,
+    allowNull: true,
+    validate: {
+      isString(value) {
+        if (value != null && typeof value !== 'string') {
+          throw new Error('Photo must be a string representing a file path or URL');
+        }
+      },
+      isFile(value) {
+        if (value != null && !(/\.(jpe?g|png|gif|bmp|webp|svg|heic|pdf|docx?|xlsx?|pptx?)$/i).test(value)) {
+          throw new Error('Photo must be a valid file path or URL to an accepted file type');
+        }
+      }
+    }
+  },
   role: {
     type: DataTypes.ENUM('admin', 'user', 'manager'),
     allowNull: false,

@@ -11,10 +11,45 @@ class App {
     this.setupEventListeners();
     this.setupSidebar();
     this.loadCurrentEntity();
+    // Always enable the global create-entity modal (needed on pages like Overview)
+    this.setupGlobalEntityModal();
+    // Page-specific helpers
+    this.setupDemographicsInterestsTags();
+    this.setupTeamInlineAdd();
     if (!this.disableEntityHandlers) {
-      this.setupGlobalEntityModal();
       this.setupConnectAccountModal();
     }
+  }
+
+  // Utility: always build JSON headers with latest token
+  buildJsonHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const latestToken = this.token || localStorage.getItem('authToken');
+    if (latestToken) headers['Authorization'] = `Bearer ${latestToken}`;
+    return headers;
+  }
+
+  // Utility: JSON request wrapper
+  async jsonRequest(url, method, payload) {
+    const res = await fetch(url, {
+      method,
+      headers: this.buildJsonHeaders(),
+      credentials: 'same-origin',
+      body: payload !== undefined ? JSON.stringify(payload) : undefined
+    });
+    let json = null;
+    try { json = await res.json(); } catch (_) {}
+    return { ok: res.ok, json };
+  }
+
+  // Utility: file -> data URL
+  readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   loadCurrentEntity() {
@@ -78,52 +113,37 @@ class App {
     // User dropdown functionality
     const userDropdownBtn = document.getElementById('userDropdownBtn');
     const userDropdown = document.getElementById('userDropdown');
-    
     if (userDropdownBtn && userDropdown) {
       userDropdownBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.toggleUserDropdown();
-      });
-
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!userDropdownBtn.contains(e.target) && !userDropdown.contains(e.target)) {
-          this.closeUserDropdown();
-        }
-      });
-
-      // Close dropdown on escape key
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          this.closeUserDropdown();
-        }
       });
     }
 
     // Entity dropdown functionality
     const entityDropdownBtn = document.getElementById('entityDropdownBtn');
     const entityDropdown = document.getElementById('entityDropdown');
-    
     if (entityDropdownBtn && entityDropdown) {
       entityDropdownBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.toggleEntityDropdown();
       });
-
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!entityDropdownBtn.contains(e.target) && !entityDropdown.contains(e.target)) {
-          this.closeEntityDropdown();
-        }
-      });
-
-      // Close dropdown on escape key
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          this.closeEntityDropdown();
-        }
-      });
     }
+
+    // One-time global listeners for closing dropdowns on outside click / escape
+    document.addEventListener('click', (e) => {
+      const clickedInsideUser = userDropdownBtn && (userDropdownBtn.contains(e.target) || (userDropdown && userDropdown.contains(e.target)));
+      const clickedInsideEntity = entityDropdownBtn && (entityDropdownBtn.contains(e.target) || (entityDropdown && entityDropdown.contains(e.target)));
+      if (!clickedInsideUser) this.closeUserDropdown();
+      if (!clickedInsideEntity) this.closeEntityDropdown();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeUserDropdown();
+        this.closeEntityDropdown();
+      }
+    });
 
     // Entity item selection
     const entityItems = document.querySelectorAll('.entity-item');
@@ -134,6 +154,41 @@ class App {
         this.selectEntity(entityId, entityName);
       });
     });
+
+    // Entity photo change
+    const photoBtn = document.getElementById('entityPhotoChangeBtn');
+    const photoInput = document.getElementById('entityPhotoInput');
+    if (photoBtn && photoInput) {
+      photoBtn.addEventListener('click', () => {
+        photoInput.click();
+      });
+      photoInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const entityId = localStorage.getItem('currentEntityId');
+        if (!entityId) {
+          alert('Select an entity first.');
+          return;
+        }
+        try {
+          const dataUrl = await this.readFileAsDataURL(file);
+          const { ok, json } = await this.jsonRequest(`/entities/${encodeURIComponent(entityId)}/photo`, 'PUT', {
+            photoData: dataUrl,
+            photoFilename: file.name
+          });
+          if (ok && json && json.success) {
+            window.location.reload();
+          } else {
+            alert((json && (json.error || json.message)) || 'Failed to update photo');
+          }
+        } catch (err) {
+          console.error('Photo upload error', err);
+          alert('Failed to upload photo');
+        } finally {
+          try { photoInput.value = ''; } catch(_) {}
+        }
+      });
+    }
 
     // Add entity button
     const addEntityBtn = document.getElementById('addEntityBtn');
@@ -160,16 +215,16 @@ class App {
             const account_id = prompt(`Enter ${p} account id/handle`);
             if (!account_id) return;
             try {
-              const res = await fetch('/entities/accounts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-                body: JSON.stringify({ platform: p, account_name, account_id, entity_id: entityId })
+              const { ok, json } = await this.jsonRequest('/entities/accounts', 'POST', {
+                platform: p,
+                account_name,
+                account_id,
+                entity_id: entityId
               });
-              const json = await res.json();
-              if (res.ok && json.success) {
+              if (ok && json && json.success) {
                 alert('Account connected');
               } else {
-                alert(json.error || 'Failed to connect account');
+                alert((json && (json.error || json.message)) || 'Failed to connect account');
               }
             } catch (err) {
               console.error('Connect account error', err);
@@ -228,41 +283,23 @@ class App {
     }
   }
 
-  selectEntity(entityId, entityName) {
+  async selectEntity(entityId, entityName) {
     // Switch to the selected entity
-    console.log('Selecting entity:', entityId, entityName);
-    
     if (!entityId) return;
 
     const currentEntityName = document.getElementById('currentEntityName');
-    if (currentEntityName) {
-      currentEntityName.textContent = entityName;
-    }
+    if (currentEntityName) currentEntityName.textContent = entityName;
 
-    const headers = { 'Content-Type': 'application/json' };
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    try {
+      const { ok, json } = await this.jsonRequest('/entities/switch', 'POST', { entityId });
+      if (!ok || !json || !json.success) throw new Error((json && (json.error || json.message)) || 'Failed to switch entity');
+      try { localStorage.setItem('currentEntityId', entityId); } catch (_) {}
+      this.closeEntityDropdown();
+      window.location.reload();
+    } catch (err) {
+      console.error('Switch entity error', err);
+      alert('Failed to switch entity. Please try again.');
     }
-
-    fetch('/entities/switch', {
-      method: 'POST',
-      headers,
-      credentials: 'same-origin',
-      body: JSON.stringify({ entityId })
-    })
-      .then(res => res.json().then(json => ({ ok: res.ok, json })))
-      .then(({ ok, json }) => {
-        if (!ok || !json.success) {
-          throw new Error(json.error || 'Failed to switch entity');
-        }
-        try { localStorage.setItem('currentEntityId', entityId); } catch (_) {}
-        this.closeEntityDropdown();
-        window.location.reload();
-      })
-      .catch(err => {
-        console.error('Switch entity error', err);
-        alert('Failed to switch entity. Please try again.');
-      });
   }
 
   addEntity() {
@@ -286,11 +323,37 @@ class App {
     const closeBtn = document.getElementById('globalCloseEntityModalBtn');
     const cancelBtn = document.getElementById('globalCancelEntityBtn');
     const form = document.getElementById('globalCreateEntityForm');
+    const photoInput = document.getElementById('ge_photo');
+    const photoBox = document.getElementById('ge_photo_box');
+    const photoPreview = document.getElementById('ge_photo_preview');
+    const photoIconWrap = document.getElementById('ge_photo_icon_wrap');
 
     const hide = () => modal.classList.add('hidden');
     if (closeBtn) closeBtn.addEventListener('click', hide);
     if (cancelBtn) cancelBtn.addEventListener('click', hide);
     modal.addEventListener('click', (e) => { if (e.target.id === 'globalCreateEntityModal') hide(); });
+
+    // Click square opens file selector
+    if (photoBox && photoInput) {
+      photoBox.addEventListener('click', () => photoInput.click());
+      photoInput.addEventListener('change', () => {
+        const file = photoInput.files && photoInput.files[0];
+        if (!file) {
+          if (photoPreview) photoPreview.classList.add('hidden');
+          if (photoIconWrap) photoIconWrap.classList.remove('hidden');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (photoPreview) {
+            photoPreview.src = reader.result;
+            photoPreview.classList.remove('hidden');
+          }
+          if (photoIconWrap) photoIconWrap.classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+      });
+    }
 
     if (form) {
       const useAjax = form.dataset.ajax === 'true';
@@ -299,35 +362,26 @@ class App {
           e.preventDefault();
           const fd = new FormData(form);
           const payload = Object.fromEntries(fd.entries());
+          // Attach base64 photo if selected
+          if (photoInput && photoInput.files && photoInput.files[0]) {
+            const file = photoInput.files[0];
+            const dataUrl = await this.readFileAsDataURL(file);
+            // Strip data URL prefix to send raw base64 as expected by API
+            const base64 = String(dataUrl).includes(',') ? String(dataUrl).split(',')[1] : String(dataUrl);
+            payload.photo = base64;
+            payload.photoFilename = file.name || 'entity-photo.png';
+          }
           try {
-            const headers = { 'Content-Type': 'application/json' };
-            if (this.token) {
-              headers['Authorization'] = `Bearer ${this.token}`;
-            }
-            const res = await fetch('/entities', {
-              method: 'POST',
-              headers,
-              credentials: 'same-origin',
-              body: JSON.stringify(payload)
-            });
-            const json = await res.json();
-            if (res.ok && json.success) {
+            const { ok, json } = await this.jsonRequest('/entities', 'POST', payload);
+            if (ok && json && json.success) {
               // Switch to new entity for session/state
-              const switchHeaders = { 'Content-Type': 'application/json' };
-              if (this.token) {
-                switchHeaders['Authorization'] = `Bearer ${this.token}`;
-              }
-              await fetch('/entities/switch', {
-                method: 'POST',
-                headers: switchHeaders,
-                credentials: 'same-origin',
-                body: JSON.stringify({ entityId: json.entity.id })
-              });
+              await this.jsonRequest('/entities/switch', 'POST', { entityId: json.entity.id });
               localStorage.setItem('currentEntityId', json.entity.id);
               hide();
               window.location.reload();
             } else {
-              alert(json.error?.error || json.error?.message || 'Failed to create entity');
+              const msg = (json && (json.error?.error || json.error?.message || json.error || json.message)) || 'Failed to create entity';
+              alert(msg);
             }
           } catch (err) {
             console.error('Create entity error', err);
@@ -340,20 +394,207 @@ class App {
 
   setupConnectAccountModal() {}
 
+  // Demographics: simple tag editor bound to hidden input
+  setupDemographicsInterestsTags() {
+    const tagBox = document.getElementById('dg_interests_tagbox');
+    const editor = document.getElementById('dg_interests_editor');
+    const hidden = document.getElementById('dg_interests');
+    if (!tagBox || !editor || !hidden) return;
+
+    /** @type {string[]} */
+    const tags = [];
+
+    const updateHidden = () => {
+      hidden.value = tags.join(',');
+    };
+
+    const createTagEl = (label) => {
+      const wrap = document.createElement('span');
+      wrap.className = 'inline-flex items-center bg-purple-100 text-purple-800 rounded-full px-2 py-1 text-xs';
+      const txt = document.createElement('span');
+      txt.textContent = label;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ml-1 text-purple-600 hover:text-purple-800 focus:outline-none';
+      btn.setAttribute('aria-label', `Remove ${label}`);
+      btn.textContent = '×';
+      btn.addEventListener('click', () => {
+        const idx = tags.indexOf(label);
+        if (idx >= 0) tags.splice(idx, 1);
+        updateHidden();
+        wrap.remove();
+        editor.focus();
+      });
+      wrap.appendChild(txt);
+      wrap.appendChild(btn);
+      return wrap;
+    };
+
+    const addTag = (raw) => {
+      if (!raw) return;
+      const candidate = String(raw).trim();
+      if (!candidate) return;
+      if (tags.includes(candidate)) return;
+      tags.push(candidate);
+      const tagEl = createTagEl(candidate);
+      tagBox.insertBefore(tagEl, editor);
+      updateHidden();
+    };
+
+    // Seed from prefilled hidden value if present
+    if (hidden.value && typeof hidden.value === 'string') {
+      hidden.value.split(',').map(s => s.trim()).filter(Boolean).forEach(addTag);
+      editor.value = '';
+    }
+
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const value = editor.value.replace(/,$/, '').trim();
+        addTag(value);
+        editor.value = '';
+      } else if (e.key === 'Backspace' && editor.value === '' && tags.length) {
+        // Remove last tag quickly
+        const last = tags.pop();
+        updateHidden();
+        // Remove last tag element (before editor)
+        const children = Array.from(tagBox.children);
+        const editorIndex = children.indexOf(editor);
+        if (editorIndex > 0) {
+          tagBox.removeChild(children[editorIndex - 1]);
+        }
+      }
+    });
+
+    editor.addEventListener('paste', (e) => {
+      const text = (e.clipboardData && e.clipboardData.getData('text')) || '';
+      if (text && text.includes(',')) {
+        e.preventDefault();
+        text.split(',').map(s => s.trim()).filter(Boolean).forEach(addTag);
+        editor.value = '';
+      }
+    });
+
+    editor.addEventListener('blur', () => {
+      const value = editor.value.replace(/,$/, '').trim();
+      addTag(value);
+      editor.value = '';
+    });
+
+    // Ensure pending text is captured on submit
+    const form = tagBox.closest('form');
+    if (form) {
+      form.addEventListener('submit', () => {
+        const value = editor.value.replace(/,$/, '').trim();
+        addTag(value);
+        editor.value = '';
+        updateHidden();
+      });
+    }
+  }
+
+  // Team page: inline add member row
+  setupTeamInlineAdd() {
+    const addBtn = document.getElementById('tm_add_inline_btn');
+    const tbody = document.getElementById('tm_members_tbody');
+    if (!addBtn || !tbody) return;
+
+    let inlineRow = null;
+
+    const removeInlineRow = () => {
+      if (inlineRow) {
+        inlineRow.remove();
+        inlineRow = null;
+      }
+    };
+
+    const createInlineRow = () => {
+      if (inlineRow) return;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">New member</td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+          <input type="email" id="tm_new_email" class="w-64 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="user@example.com" required />
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+          <select id="tm_new_role" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <option value="manager">Manager</option>
+            <option value="editor" selected>Editor</option>
+          </select>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 flex items-center gap-3">
+          <button type="button" id="tm_save_new" class="inline-flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-teal-400 text-white hover:bg-purple-900 focus:ring-purple-500">Save</button>
+          <button type="button" id="tm_cancel_new" class="text-gray-600 hover:text-gray-900">Cancel</button>
+        </td>
+      `;
+      tbody.prepend(tr);
+      inlineRow = tr;
+
+      const emailInput = tr.querySelector('#tm_new_email');
+      const roleSelect = tr.querySelector('#tm_new_role');
+      const saveBtn = tr.querySelector('#tm_save_new');
+      const cancelBtn = tr.querySelector('#tm_cancel_new');
+
+      if (emailInput) emailInput.focus();
+
+      const savingState = (isSaving) => {
+        if (saveBtn) saveBtn.disabled = isSaving;
+        if (cancelBtn) cancelBtn.disabled = isSaving;
+        if (emailInput) emailInput.disabled = isSaving;
+        if (roleSelect) roleSelect.disabled = isSaving;
+      };
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => removeInlineRow());
+      }
+
+      const submit = async () => {
+        const email = (emailInput && emailInput.value || '').trim().toLowerCase();
+        const role = (roleSelect && roleSelect.value) || 'editor';
+        if (!email) {
+          alert('Please enter an email.');
+          if (emailInput) emailInput.focus();
+          return;
+        }
+        savingState(true);
+        try {
+          const { ok, json } = await this.jsonRequest('/team/add', 'POST', { email, role });
+          if (ok && json && json.success) {
+            if (json.invited) {
+              alert(`Invitation sent to ${email}.`);
+            }
+            window.location.reload();
+            return;
+          }
+          const msg = (json && (json.error || json.message)) || 'Failed to add member';
+          alert(msg);
+        } catch (err) {
+          console.error('Add member error', err);
+          alert('Failed to add member');
+        } finally {
+          savingState(false);
+        }
+      };
+
+      if (saveBtn) saveBtn.addEventListener('click', submit);
+      if (emailInput) emailInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submit();
+        }
+      });
+    };
+
+    addBtn.addEventListener('click', () => {
+      if (inlineRow) return;
+      createInlineRow();
+    });
+  }
+
   async logout() {
     try {
       // Call logout endpoint to clear session
-      await fetch('/auth/logout', {
-        method: 'POST',
-        headers: (() => {
-          const headers = { 'Content-Type': 'application/json' };
-          if (this.token) {
-            headers['Authorization'] = `Bearer ${this.token}`;
-          }
-          return headers;
-        })(),
-        credentials: 'same-origin'
-      });
+      await this.jsonRequest('/auth/logout', 'POST');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

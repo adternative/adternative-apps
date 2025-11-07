@@ -1,20 +1,26 @@
-const { sequelize, CoreEntity, CoreChannel, CoreBenchmark, CoreRecommendation, models } = require('./models');
-const { DEFAULT_CHANNELS, DEFAULT_BENCHMARKS } = require('./utils/mockData');
+const { sequelize, Channel, models } = require('./models');
+const { DEFAULT_CHANNELS } = require('./utils/mockData');
 
 // --- Setup Helpers ----------------------------------------------------------
 
-const coreModels = [CoreEntity, CoreChannel, CoreBenchmark, CoreRecommendation];
+const coreModels = [Channel];
 
-const syncCoreModels = async ({ alter = true } = {}) => {
-  const options = alter ? { alter: true } : {};
+
+const syncModels = async () => {
   for (const model of coreModels) {
-    await model.sync(options);
+    try {
+      await model.sync({ alter: true });
+    } catch (error) {
+      // Surface which model failed to sync to aid debugging
+      console.error(`[CORE] Failed to sync model ${model.getTableName ? model.getTableName() : model.name}:`, error);
+      throw error;
+    }
   }
 };
 
 const seedDefaultChannels = async () => {
   for (const channel of DEFAULT_CHANNELS) {
-    await CoreChannel.findOrCreate({
+    await Channel.findOrCreate({
       where: { name: channel.name },
       defaults: {
         category: channel.category,
@@ -28,27 +34,16 @@ const seedDefaultChannels = async () => {
   }
 };
 
-const seedDefaultBenchmarks = async () => {
-  for (const benchmark of DEFAULT_BENCHMARKS) {
-    await CoreBenchmark.upsert({
-      industry: benchmark.industry,
-      source: benchmark.source,
-      metrics: benchmark.metrics,
-      updatedAt: benchmark.updatedAt || new Date()
-    });
-  }
-};
-
 let ensurePromise = null;
 
 const ensureReady = async () => {
   if (!ensurePromise) {
     ensurePromise = (async () => {
-      await syncCoreModels({ alter: true });
-      await Promise.all([seedDefaultChannels(), seedDefaultBenchmarks()]);
+      await syncModels();
+      await seedDefaultChannels();
     })().catch((error) => {
       ensurePromise = null;
-      console.error('[CORE] ensureReady failed:', error.message);
+      console.error('[CORE] ensureReady failed:', error);
       throw error;
     });
   }
@@ -59,9 +54,8 @@ module.exports = {
   sequelize,
   models,
   ensureReady,
-  syncCoreModels,
-  seedDefaultChannels,
-  seedDefaultBenchmarks
+  syncModels,
+  seedDefaultChannels
 };
 
 

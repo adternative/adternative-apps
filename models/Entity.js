@@ -21,9 +21,9 @@ const Entity = sequelize.define('Entity', {
       len: [1, 50]
     }
   },
-  logo: {
+  photo: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: true,
   },
   description: {
     type: DataTypes.TEXT,

@@ -1,15 +1,6 @@
-const { fetchInfluencers } = require('../services/influencerAPI');
-const { getRelevantTopicsForIndustry } = require('../services/industryMatch');
-const { computeInfluencerFitScore } = require('../utils/scoring');
-const { upsertInfluencerWithPlatforms, recordMatches } = require('../database');
-const { generateRecommendations } = require('../ai/recommend');
-
-const ensureEntity = (req) => {
-  if (req.currentEntity) return req.currentEntity;
-  const error = new Error('No active entity selected');
-  error.status = 400;
-  throw error;
-};
+const { computeInfluencerFitScore, normalizeTopicList } = require('../utils/scoring');
+const { ensureReady } = require('../database');
+const { Influencer } = require('../models');
 
 const parseArray = (value) => {
   if (!value) return [];
@@ -20,129 +11,127 @@ const parseArray = (value) => {
     .filter(Boolean);
 };
 
-const defaultAudienceProfile = ({ region, language }) => {
+
+
+// Provide a neutral default audience profile when none is supplied.
+// Returning null lets downstream scoring treat audience overlap as neutral (0.5).
+const defaultAudienceProfile = (_filters) => {
+  return null;
+};
+
+const buildAudienceProfileFromDemographic = (demographic) => {
+  if (!demographic || typeof demographic !== 'object') return null;
   const profile = {};
-  if (region) {
-    profile.location = { [region.replace(/\s+/g, '')]: 60, Other: 40 };
+  const gender = demographic.gender || {};
+  if (gender && (typeof gender.male === 'number' || typeof gender.female === 'number')) {
+    const male = typeof gender.male === 'number' ? gender.male : 50;
+    const female = typeof gender.female === 'number' ? gender.female : 50;
+    const sum = Math.max(male + female, 1);
+    profile.gender = { male: Math.round((male / sum) * 100), female: Math.round((female / sum) * 100) };
   }
-  if (language) {
-    profile.language = { [language]: 70, other: 30 };
+  const ageRange = demographic.age_range || demographic.ageRange;
+  const buckets = ['18-24', '25-34', '35-44', '45-54', '55+'];
+  if (ageRange && typeof ageRange.min === 'number' && typeof ageRange.max === 'number') {
+    const { min, max } = ageRange;
+    const weights = {};
+    for (const bucket of buckets) {
+      const parts = bucket.split('-');
+      const bMin = parts[0] === '55+' ? 55 : parseInt(parts[0], 10);
+      const bMax = parts[1] ? parseInt(parts[1], 10) : 120;
+      const overlap = Math.max(0, Math.min(max, bMax) - Math.max(min, bMin));
+      weights[bucket] = overlap > 0 ? overlap : 0;
+    }
+    const total = Object.values(weights).reduce((a, b) => a + b, 0) || 1;
+    profile.age = Object.fromEntries(buckets.map((b) => [b, Math.round((weights[b] / total) * 100)]));
   }
-  profile.gender = { female: 50, male: 50 };
-  profile.age = { '18-24': 30, '25-34': 40, '35-44': 20, other: 10 };
+  const location = demographic.location || {};
+  if (location && (location.country || location.city)) {
+    const key = (location.country || location.city || 'Other').replace(/\s+/g, '');
+    profile.location = { [key]: 70, Other: 30 };
+  }
   return profile;
+};
+
+const topicsFromGoal = (goal) => {
+  if (!goal || typeof goal !== 'object') return [];
+  const topics = [];
+  const name = goal.name || '';
+  const objective = goal.objective || {};
+  const kpi = String(objective.kpi || '').toLowerCase();
+  const metric = String(objective.metric || '').toLowerCase();
+  if (name) topics.push(name);
+  if (kpi) {
+    topics.push(kpi);
+    if (kpi === 'awareness') topics.push('branding', 'reach', 'viral', 'top of funnel');
+    if (kpi === 'leads') topics.push('lead gen', 'webinars', 'email signup', 'landing pages');
+    if (kpi === 'sales') topics.push('product review', 'unboxing', 'discount code', 'affiliate');
+    if (kpi === 'retention') topics.push('loyalty', 'community', 'education', 'how-to');
+  }
+  if (metric) {
+    topics.push(metric);
+    if (metric === 'ctr') topics.push('call to action', 'link in bio');
+    if (metric === 'roas') topics.push('paid social', 'performance', 'conversion');
+    if (metric === 'cpa') topics.push('offer', 'trial', 'signup');
+  }
+  return topics;
 };
 
 const buildFiltersFromRequest = (req) => {
   const body = req.body || {};
   const query = req.query || {};
   const src = { ...query, ...body };
-
-  const region = src.region || src.country || null;
-  const language = src.language || src.locale || null;
-  const minEngagement = src.minEngagement ? Number(src.minEngagement) : null;
-  const priorityPlatforms = parseArray(src.platforms || src.priorityPlatforms).map((value) =>
-    value.toLowerCase()
-  );
+  const minEngagement = src.minEngagement ? Number(src.minEngagement) / (String(src.minEngagement).includes('%') ? 100 : 1) : null;
+  const priorityPlatforms = parseArray(src.platforms || src.priorityPlatforms).map((v) => v.toLowerCase());
   const goals = parseArray(src.goals);
-
   let audienceProfile = src.audienceProfile || src.audience;
   if (typeof audienceProfile === 'string') {
-    try {
-      audienceProfile = JSON.parse(audienceProfile);
-    } catch (error) {
-      audienceProfile = null;
-    }
+    try { audienceProfile = JSON.parse(audienceProfile); } catch (_) { audienceProfile = null; }
   }
-
-  return {
-    region,
-    language,
-    minEngagement,
-    goals,
-    priorityPlatforms,
-    audienceProfile
-  };
+  return { minEngagement, goals, priorityPlatforms, audienceProfile };
 };
 
-const discoverInfluencersForEntity = async ({ entity, filters, persist = true }) => {
+const discoverInfluencersForEntity = async ({ entity, filters, selectedGoal, selectedDemographic }) => {
+  await ensureReady();
   const normalizedFilters = { ...filters };
+  const demographicProfile = buildAudienceProfileFromDemographic(selectedDemographic);
   if (!normalizedFilters.audienceProfile) {
-    normalizedFilters.audienceProfile = defaultAudienceProfile(normalizedFilters);
+    normalizedFilters.audienceProfile = demographicProfile || defaultAudienceProfile(normalizedFilters);
+  } else if (demographicProfile) {
+    normalizedFilters.audienceProfile = demographicProfile;
   }
 
-  const industryTopics = getRelevantTopicsForIndustry(entity.industry);
+  // Build brand topics from available signals (no external services)
+  const industryTopics = normalizeTopicList(entity?.industry || []);
+  const goalTopics = topicsFromGoal(selectedGoal);
+  const demographicTopics = Array.isArray(selectedDemographic?.interests) ? selectedDemographic.interests : [];
+  const brandTopics = [
+    ...industryTopics,
+    ...normalizeTopicList(goalTopics),
+    ...normalizeTopicList(demographicTopics)
+  ].filter(Boolean);
 
-  const influencers = await fetchInfluencers({
-    industryTopics,
-    region: normalizedFilters.region,
-    language: normalizedFilters.language,
-    minEngagement: normalizedFilters.minEngagement,
-    priorityPlatforms: normalizedFilters.priorityPlatforms,
-    audienceProfile: normalizedFilters.audienceProfile
-  });
+  const all = await Influencer.findAll();
+  const influencers = Array.isArray(all) ? all.map((m) => m.get({ plain: true })) : [];
 
-  const scored = [];
-  for (const influencer of influencers) {
-    let persistedRecord = null;
-    if (persist) {
-      persistedRecord = await upsertInfluencerWithPlatforms(influencer);
-    }
-
-    const baseRecord = persistedRecord && typeof persistedRecord.get === 'function'
-      ? persistedRecord.get({ plain: true })
-      : persistedRecord || influencer;
-
+  const scored = influencers.map((inf) => {
     const { score, breakdown } = computeInfluencerFitScore({
-      influencer: baseRecord,
-      brandTopics: industryTopics,
+      influencer: inf,
+      brandTopics,
       audienceProfile: normalizedFilters.audienceProfile,
-      priorityPlatforms: normalizedFilters.priorityPlatforms
+      priorityPlatforms: normalizedFilters.priorityPlatforms || []
     });
-
-    const enriched = {
-      ...baseRecord,
-      fitScore: score,
-      scoreBreakdown: breakdown
-    };
-
-    scored.push(enriched);
-  }
-
-  scored.sort((a, b) => b.fitScore - a.fitScore);
-
-  const topMatches = scored.slice(0, 10);
-
-  if (persist && topMatches.length > 0) {
-    await recordMatches({
-      entityId: entity.id,
-      matches: topMatches.map((match) => ({
-        influencerId: match.id,
-        score: match.fitScore,
-        rationale: `High topic match (${Math.round(
-          match.scoreBreakdown.topicSimilarity * 100
-        )}%), audience overlap ${Math.round(match.scoreBreakdown.audienceOverlap * 100)}%.`,
-        isFavorite: false
-      }))
-    });
-  }
-
-  const aiBundle = generateRecommendations({
-    entity,
-    influencers: scored.slice(0, 3),
-    filters: normalizedFilters
+    return { ...inf, fitScore: score, scoreBreakdown: breakdown };
   });
 
-  return {
-    influencers: scored,
-    filters: normalizedFilters,
-    ai: aiBundle
-  };
+  scored.sort((a, b) => (b.fitScore || 0) - (a.fitScore || 0));
+  return { influencers: scored, filters: normalizedFilters, ai: null };
 };
 
 module.exports = {
   buildFiltersFromRequest,
-  discoverInfluencersForEntity
+  discoverInfluencersForEntity,
+  topicsFromGoal,
+  buildAudienceProfileFromDemographic
 };
 
 

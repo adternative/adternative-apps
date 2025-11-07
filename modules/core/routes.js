@@ -21,8 +21,8 @@ router.use(async (req, res, next) => {
 });
 
 router.get('/', withAvailableApps, dashboard.renderDashboard);
-router.get('/api/summary', dashboard.getSummary);
-router.post('/api/refresh', dashboard.triggerRefresh);
+router.get('/summary', dashboard.getSummary);
+router.post('/refresh', dashboard.triggerRefresh);
 
 module.exports = (app) => {
   app.use('/core', router);
