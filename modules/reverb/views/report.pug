@@ -1,0 +1,26 @@
+extends ./dashboard.pug
+
+block pageContent
+
+  div(class="space-y-6")
+    div(class="bg-white shadow-sm rounded-3xl p-6")
+      h1.text-xl.font-semibold.text-gray-900 #{report && report.title || 'Report'}
+      if report && report.description
+        p.mt-1.text-sm.text-gray-600= report.description
+
+    if report && Array.isArray(report.sections)
+      each section in report.sections
+        div(class="bg-white shadow-sm rounded-3xl p-6")
+          if section.title
+            h2.text-lg.font-semibold.text-gray-900 #{section.title}
+          if section.status
+            include ./partials/status.pug
+            +status(section.status.label, section.status.level)
+          if section.table
+            include ./partials/table.pug
+            +dataTable(section.table.headers, section.table.rows)
+          if section.chart
+            include ./partials/chart.pug
+            +chart(section.chart)
+
+

@@ -29,11 +29,12 @@ const resolveWorkspace = async ({ entity }) => {
   }
 };
 
-const buildBaseContext = ({ req, entity, workspace, workspaceError }) => ({
+const buildBaseContext = ({ req, res, entity, workspace, workspaceError }) => ({
   user: req.user,
   currentEntity: toPlain(entity),
   appName: 'REVERB',
-  availableApps: req.availableApps,
+  // availableApps is already in res.locals from attachSidebarApps middleware
+  // Don't override it - let the template use res.locals.availableApps
   workspace: workspace ? toPlain(workspace) : null,
   noEntity: !entity,
   missingWebsite: Boolean(workspaceError && workspaceError.code === 'REVERB_NO_WEBSITE'),

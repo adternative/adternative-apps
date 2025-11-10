@@ -1,0 +1,6 @@
+mixin status(label, level)
+  - const color = level === 'ok' ? 'green' : level === 'warn' ? 'amber' : level === 'info' ? 'blue' : 'gray';
+  div(class=`inline-flex items-center px-3 py-1 rounded-full bg-${color}-50 text-${color}-800 border border-${color}-200 text-xs mt-3`)
+    span #{label}
+
+

@@ -3,13 +3,12 @@ const router = express.Router();
 
 const { authenticateToken } = require('../middleware/auth');
 const { currentEntity } = require('../middleware/entity');
-const { withAvailableApps } = require('../middleware/paywall');
 const { getAvailableApps } = require('../utils/appLoader');
 
 const Demographic = require('../models/Demographic');
 
-// Ensure all routes require auth and load available apps for sidebar
-router.use(authenticateToken, withAvailableApps);
+// Ensure all routes require auth
+router.use(authenticateToken);
 
 // GET /demographics – Render demographics page (list + create)
 router.get('/', currentEntity, async (req, res) => {
@@ -19,22 +18,35 @@ router.get('/', currentEntity, async (req, res) => {
       return res.render('demographics', {
         title: 'Demographics',
         user: req.user,
-        availableApps: req.availableApps || getAvailableApps(),
-        demographics: []
+        demographics: [],
+        editingDemographic: null
       });
     }
 
     const entityId = req.currentEntity.id;
+    const demographicId = req.query.id || null;
 
-    // The model enforces one record per entity, but present it as a list for UI consistency
-    const record = await Demographic.findOne({ where: { entity_id: entityId } });
-    const demographics = record ? [record] : [];
+    // Load all demographics for the current entity
+    const records = await Demographic.findAll({ where: { entity_id: entityId }, order: [['createdAt', 'DESC']] });
+    // Ensure we render plain data (JSON fields as plain objects)
+    const demographics = Array.isArray(records) ? records.map(r => r.get({ plain: true })) : [];
+
+    // If editing, load the specific demographic
+    let editingDemographic = null;
+    if (demographicId) {
+      const demographicRecord = await Demographic.findOne({
+        where: { id: demographicId, entity_id: entityId }
+      });
+      if (demographicRecord) {
+        editingDemographic = demographicRecord.get({ plain: true });
+      }
+    }
 
     return res.render('demographics', {
       title: 'Demographics',
       user: req.user,
-      availableApps: req.availableApps || getAvailableApps(),
-      demographics
+      demographics,
+      editingDemographic
     });
   } catch (error) {
     console.error('[Demographics] Render error:', error);
@@ -42,8 +54,8 @@ router.get('/', currentEntity, async (req, res) => {
     return res.render('demographics', {
       title: 'Demographics',
       user: req.user,
-      availableApps: req.availableApps || getAvailableApps(),
       demographics: [],
+      editingDemographic: null,
       error: 'Failed to load demographics'
     });
   }
@@ -57,6 +69,8 @@ router.post('/', currentEntity, async (req, res) => {
     }
 
     const entityId = req.currentEntity.id;
+    const demographicId = req.body.id || null;
+    const isUpdate = Boolean(demographicId);
 
     // Extract and sanitize fields
     const {
@@ -95,7 +109,10 @@ router.post('/', currentEntity, async (req, res) => {
       min: coerceNum(income_min),
       max: coerceNum(income_max)
     };
-    const genderVal = Array.isArray(gender) ? gender : (gender ? [gender] : null);
+    // Normalize gender to ENUM value accepted by the model
+    const allowedGenders = ['male', 'female', 'non-binary', 'all'];
+    const selectedGender = Array.isArray(gender) ? gender[0] : gender;
+    const genderVal = (typeof selectedGender === 'string' && allowedGenders.includes(selectedGender)) ? selectedGender : 'all';
     const interestsArr = typeof interests === 'string' ? interests.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(interests) ? interests : []);
     const normalizeLanguageCode = (v) => {
       if (typeof v !== 'string') return null;
@@ -124,15 +141,19 @@ router.post('/', currentEntity, async (req, res) => {
       ...(education ? { education } : {})
     };
 
-    // Upsert by primary key (entity_id)
-    const existing = await Demographic.findOne({ where: { entity_id: entityId } });
-    if (existing) {
-      await existing.update(record);
+    if (isUpdate) {
+      // Update existing demographic
+      const existingDemographic = await Demographic.findOne({ where: { id: demographicId, entity_id: entityId } });
+      if (!existingDemographic) {
+        return res.redirect('/demographics?error=demographic_not_found');
+      }
+      await existingDemographic.update(record);
+      return res.redirect(`/demographics?id=${demographicId}&updated=1`);
     } else {
+      // Create a new demographic record (multiple per entity supported)
       await Demographic.create(record);
+      return res.redirect('/demographics?saved=1');
     }
-
-    return res.redirect('/demographics?saved=1');
   } catch (error) {
     console.error('[Demographics] Save error:', error);
     return res.redirect('/demographics?error=server_error');

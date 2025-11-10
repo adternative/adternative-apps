@@ -20,7 +20,7 @@ const listRankTracking = async (req, res, next) => {
 
     if (!workspace) {
       return res.render(RANK_VIEW, {
-        ...buildBaseContext({ req, entity, workspace, workspaceError }),
+        ...buildBaseContext({ req, res, entity, workspace, workspaceError }),
         title: 'Rank Tracking — Reverb',
         summary: null,
         selectedKeyword,
@@ -54,7 +54,7 @@ const listRankTracking = async (req, res, next) => {
     }
 
     res.render(RANK_VIEW, {
-      ...buildBaseContext({ req, entity, workspace, workspaceError: null }),
+      ...buildBaseContext({ req, res, entity, workspace, workspaceError: null }),
       title: 'Rank Tracking — Reverb',
       summary,
       selectedKeyword,

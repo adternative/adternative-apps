@@ -1,7 +1,7 @@
 const express = require('express');
 const { Op } = require('sequelize');
 const { Entity, ModuleSubscription } = require('../models');
-const { uploadEntityLogo } = require('../config/storage');
+const { uploadEntityLogo, uploadBrandingAsset, listObjects, deleteObject, getPublicUrl } = require('../config/storage');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { currentEntity, requireCurrentEntity, getUserEntities, switchEntity } = require('../middleware/entity');
 const { PlatformAccount } = require('../modules/flow/models');
@@ -777,6 +777,168 @@ router.post('/accounts', currentEntity, async (req, res) => {
     res.json({ success: true, account: acc });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Get branding assets for an entity (grouped by category)
+router.get('/:entityId/branding', async (req, res) => {
+  try {
+    const { entityId } = req.params;
+    const entity = await findEntityForUser(req.user?.id, entityId);
+
+    if (!entity) {
+      return res.status(404).json({
+        error: 'Entity not found',
+        code: 'ENTITY_NOT_FOUND'
+      });
+    }
+
+    const prefix = `entities/${entityId}/branding/`;
+    const allObjects = await listObjects(prefix);
+
+    // Group by category
+    const assetsByCategory = {};
+    allObjects.forEach(obj => {
+      const parts = obj.key.replace(prefix, '').split('/');
+      const category = parts[0] || 'general';
+      if (!assetsByCategory[category]) {
+        assetsByCategory[category] = [];
+      }
+      assetsByCategory[category].push({
+        key: obj.key,
+        url: obj.url,
+        size: obj.size,
+        lastModified: obj.lastModified,
+        filename: parts[parts.length - 1] || obj.key
+      });
+    });
+
+    res.json({
+      success: true,
+      assets: assetsByCategory,
+      categories: Object.keys(assetsByCategory)
+    });
+  } catch (error) {
+    console.error('Get branding assets error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch branding assets',
+      code: 'FETCH_BRANDING_ASSETS_ERROR'
+    });
+  }
+});
+
+// Upload branding asset
+router.post('/:entityId/branding', async (req, res) => {
+  try {
+    const { entityId } = req.params;
+    const { assetData, assetFilename, category = 'general', replaceLogo } = req.body || {};
+
+    const entity = await findEntityForUser(req.user?.id, entityId);
+    if (!entity) {
+      return res.status(404).json({
+        error: 'Entity not found',
+        code: 'ENTITY_NOT_FOUND'
+      });
+    }
+
+    if (!assetData || typeof assetData !== 'string') {
+      return res.status(400).json({
+        error: 'assetData (base64) is required',
+        code: 'MISSING_ASSET_DATA'
+      });
+    }
+
+    const matches = assetData.match(/^data:([^;]+);base64,(.*)$/);
+    const base64Payload = matches ? matches[2] : assetData;
+    const buffer = Buffer.from(base64Payload, 'base64');
+    const originalName = typeof assetFilename === 'string' && assetFilename.trim() ? assetFilename.trim() : 'asset.png';
+
+    // If uploading to logo category and replaceLogo is true, update entity photo
+    if (category === 'logo' && replaceLogo === true) {
+      const uploaded = await uploadBrandingAsset({ buffer, originalName, entityId, category, publicRead: true });
+      const url = uploaded && (uploaded.url || (uploaded.key ? getPublicUrl(uploaded.key) : null));
+      if (url) {
+        await entity.update({ photo: url });
+      }
+      return res.json({
+        success: true,
+        message: 'Logo uploaded and entity photo updated',
+        asset: {
+          key: uploaded.key,
+          url: url,
+          category: 'logo'
+        },
+        entityPhoto: url
+      });
+    }
+
+    const uploaded = await uploadBrandingAsset({ buffer, originalName, entityId, category, publicRead: true });
+    const url = uploaded && (uploaded.url || (uploaded.key ? getPublicUrl(uploaded.key) : null));
+
+    res.json({
+      success: true,
+      message: 'Branding asset uploaded',
+      asset: {
+        key: uploaded.key,
+        url: url,
+        category: category
+      }
+    });
+  } catch (error) {
+    console.error('Upload branding asset error:', error);
+    res.status(500).json({
+      error: 'Failed to upload branding asset',
+      code: 'UPLOAD_BRANDING_ASSET_ERROR'
+    });
+  }
+});
+
+// Delete branding asset
+router.delete('/:entityId/branding', async (req, res) => {
+  try {
+    const { entityId } = req.params;
+    const { key } = req.query || {};
+
+    if (!key || typeof key !== 'string') {
+      return res.status(400).json({
+        error: 'key (S3 key) is required',
+        code: 'MISSING_KEY'
+      });
+    }
+
+    const entity = await findEntityForUser(req.user?.id, entityId);
+    if (!entity) {
+      return res.status(404).json({
+        error: 'Entity not found',
+        code: 'ENTITY_NOT_FOUND'
+      });
+    }
+
+    // Verify the key belongs to this entity
+    if (!key.startsWith(`entities/${entityId}/branding/`)) {
+      return res.status(403).json({
+        error: 'Invalid asset key',
+        code: 'INVALID_KEY'
+      });
+    }
+
+    await deleteObject(key);
+
+    // If deleting logo and it's the current entity photo, clear it
+    if (key.includes('/logo/') && entity.photo && (entity.photo.includes(key) || key.includes(entity.photo))) {
+      await entity.update({ photo: null });
+    }
+
+    res.json({
+      success: true,
+      message: 'Branding asset deleted'
+    });
+  } catch (error) {
+    console.error('Delete branding asset error:', error);
+    res.status(500).json({
+      error: 'Failed to delete branding asset',
+      code: 'DELETE_BRANDING_ASSET_ERROR'
+    });
   }
 });
 

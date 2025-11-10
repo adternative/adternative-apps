@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../../middleware/auth');
-const { requireAppAccess, withAvailableApps } = require('../../middleware/paywall');
+const { requireAppAccess } = require('../../middleware/paywall');
 const { currentEntity } = require('../../middleware/entity');
 const { ensureReady } = require('./database');
 const { renderDashboard } = require('./controllers/dashboard');
@@ -22,9 +22,9 @@ router.use((req, res, next) => {
 });
 
 // Dashboard
-router.get('/', withAvailableApps, renderDashboard);
-router.get('/discovery', withAvailableApps, renderDashboard);
-router.post('/discovery', withAvailableApps, renderDashboard);
+router.get('/', renderDashboard);
+router.get('/discovery', renderDashboard);
+router.post('/discovery', renderDashboard);
 
 // Matches and favorites temporarily disabled due to current structure
 

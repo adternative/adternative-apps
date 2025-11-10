@@ -17,7 +17,7 @@ const listKeywords = async (req, res, next) => {
 
     if (!workspace) {
       return res.render(KEYWORD_VIEW, {
-        ...buildBaseContext({ req, entity, workspace, workspaceError }),
+        ...buildBaseContext({ req, res, entity, workspace, workspaceError }),
         title: 'Keyword Intelligence — Reverb',
         summary: null,
         orderBy,
@@ -29,7 +29,7 @@ const listKeywords = async (req, res, next) => {
     const summary = await summarizeKeywordPerformance({ workspaceId: workspace.id });
 
     res.render(KEYWORD_VIEW, {
-      ...buildBaseContext({ req, entity, workspace, workspaceError: null }),
+      ...buildBaseContext({ req, res, entity, workspace, workspaceError: null }),
       title: 'Keyword Intelligence — Reverb',
       summary,
       orderBy,

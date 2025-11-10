@@ -5,7 +5,7 @@
   "settings": [
     {
       "name": "Channels",
-      "model": "CoreChannel",
+      "model": "Channel",
       "fields": [
         "name",
         "category",

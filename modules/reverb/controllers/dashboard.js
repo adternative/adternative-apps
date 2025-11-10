@@ -21,7 +21,7 @@ const renderDashboard = async (req, res, next) => {
 
     if (!workspace) {
       return res.render(DASHBOARD_VIEW, {
-        ...buildBaseContext({ req, entity, workspace, workspaceError }),
+        ...buildBaseContext({ req, res, entity, workspace, workspaceError }),
         title: 'REVERB • Search Intelligence',
         overview: { summary: {}, features: [] },
         keywordHighlights: [],
@@ -44,7 +44,7 @@ const renderDashboard = async (req, res, next) => {
     ]);
 
     res.render(DASHBOARD_VIEW, {
-      ...buildBaseContext({ req, entity, workspace, workspaceError: null }),
+      ...buildBaseContext({ req, res, entity, workspace, workspaceError: null }),
       title: 'REVERB • Search Intelligence',
       overview,
       keywordHighlights: mapToPlain(keywordHighlights),

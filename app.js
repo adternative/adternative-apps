@@ -13,10 +13,12 @@ var adminApiRouter = require('./routes/admin');
 var goalsRouter = require('./routes/goals');
 var demographicsRouter = require('./routes/demographics');
 var teamRouter = require('./routes/team');
+var brandingRouter = require('./routes/branding');
 var filesRouter = require('./routes/files');
 
 // Import middleware and utilities
 const { requireAuth } = require('./middleware/global');
+const { attachSidebarApps } = require('./middleware/paywall');
 const { loadAppRoutes, loadModules, loadModuleDatabases, getAvailableApps } = require('./utils/appLoader');
 const { Entity } = require('./models');
 
@@ -30,8 +32,8 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' })); // Increase limit for large file uploads
+app.use(express.urlencoded({ extended: false, limit: '50mb' })); // Increase limit for large file uploads
 app.use(cookieParser());
 
 // Session configuration with longer duration
@@ -134,6 +136,10 @@ app.use(async (req, res, next) => {
   }
 });
 
+// Sidebar apps (filtered by subscriptions or admin) for all HTML pages
+// Place AFTER user/session attachment so req.user is available
+app.use(attachSidebarApps);
+
 // Routes
 app.use('/', indexRouter);
 app.use('/files', filesRouter);
@@ -143,6 +149,7 @@ app.use('/admin', adminApiRouter);
 app.use('/goals', goalsRouter);
 app.use('/demographics', demographicsRouter);
 app.use('/team', teamRouter);
+app.use('/branding', brandingRouter);
 
 // Legacy aliases: support /app/* and /module/* by redirecting to /*
 app.use(['/app', '/module'], (req, res) => {

@@ -6,6 +6,10 @@ const PageAudit = require('./PageAudit')(sequelize);
 const TechnicalIssue = require('./TechnicalIssue')(sequelize);
 const Backlink = require('./Backlink')(sequelize);
 const RankSnapshot = require('./RankSnapshot')(sequelize);
+const Crawl = require('./Crawl')(sequelize);
+const Report = require('./Report')(sequelize);
+const Setting = require('./Setting')(sequelize);
+const Segment = require('./Segment')(sequelize);
 
 let associationsApplied = false;
 
@@ -62,6 +66,17 @@ const applyAssociations = () => {
     as: 'workspace'
   });
 
+  // Optional associations for new models
+  Crawl.hasMany(Report, {
+    foreignKey: 'crawl_id',
+    as: 'reports',
+    onDelete: 'CASCADE'
+  });
+  Report.belongsTo(Crawl, {
+    foreignKey: 'crawl_id',
+    as: 'crawl'
+  });
+
   associationsApplied = true;
 };
 
@@ -73,7 +88,11 @@ const models = {
   PageAudit,
   TechnicalIssue,
   Backlink,
-  RankSnapshot
+  RankSnapshot,
+  Crawl,
+  Report,
+  Setting,
+  Segment
 };
 
 module.exports = {

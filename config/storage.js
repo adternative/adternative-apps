@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
 const { getSignedUrl: s3GetSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const path = require('path');
@@ -129,16 +129,33 @@ const deleteObject = async (key) => {
   return { key };
 };
 
+const listObjects = async (prefix, maxKeys = 1000) => {
+  const client = getS3Client();
+  const cmd = new ListObjectsV2Command({
+    Bucket: WASABI_BUCKET,
+    Prefix: prefix,
+    MaxKeys: maxKeys
+  });
+  const response = await client.send(cmd);
+  return (response.Contents || []).map(item => ({
+    key: item.Key,
+    size: item.Size,
+    lastModified: item.LastModified,
+    url: getPublicUrl(item.Key)
+  }));
+};
+
 // Convenience helpers for common app use-cases
 const uploadEntityLogo = async ({ buffer, originalName, entityId, publicRead = true }) => {
   const acl = publicRead ? 'public-read' : 'private';
-  const prefix = `entities/${entityId}/branding`;
+  const prefix = `entities/${entityId}/branding/logo`;
   return uploadBuffer({ buffer, originalName, prefix, acl });
 };
 
-const uploadBrandingAsset = async ({ buffer, originalName, entityId, publicRead = true }) => {
+const uploadBrandingAsset = async ({ buffer, originalName, entityId, category = 'general', publicRead = true }) => {
   const acl = publicRead ? 'public-read' : 'private';
-  const prefix = `entities/${entityId}/assets`;
+  const sanitizedCategory = String(category || 'general').replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+  const prefix = `entities/${entityId}/branding/${sanitizedCategory}`;
   return uploadBuffer({ buffer, originalName, prefix, acl });
 };
 
@@ -157,6 +174,7 @@ module.exports = {
   uploadBuffer,
   uploadStream,
   deleteObject,
+  listObjects,
   uploadEntityLogo,
   uploadBrandingAsset,
   uploadUserAvatar

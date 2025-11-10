@@ -16,7 +16,7 @@ const showAudit = async (req, res, next) => {
 
     if (!workspace) {
       return res.render(AUDIT_VIEW, {
-        ...buildBaseContext({ req, entity, workspace, workspaceError }),
+        ...buildBaseContext({ req, res, entity, workspace, workspaceError }),
         title: 'On-Page SEO Audit — Reverb',
         summary: null,
         audits: []
@@ -27,7 +27,7 @@ const showAudit = async (req, res, next) => {
     const summary = await summarizeAudits({ workspaceId: workspace.id });
 
     res.render(AUDIT_VIEW, {
-      ...buildBaseContext({ req, entity, workspace, workspaceError: null }),
+      ...buildBaseContext({ req, res, entity, workspace, workspaceError: null }),
       title: 'On-Page SEO Audit — Reverb',
       summary,
       audits: mapToPlain(audits)

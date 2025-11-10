@@ -17,7 +17,7 @@ const listBacklinks = async (req, res, next) => {
 
     if (!workspace) {
       return res.render(BACKLINK_VIEW, {
-        ...buildBaseContext({ req, entity, workspace, workspaceError }),
+        ...buildBaseContext({ req, res, entity, workspace, workspaceError }),
         title: 'Backlink Analysis — Reverb',
         summary: null,
         typeFilter,
@@ -35,7 +35,7 @@ const listBacklinks = async (req, res, next) => {
       : backlinks;
 
     res.render(BACKLINK_VIEW, {
-      ...buildBaseContext({ req, entity, workspace, workspaceError: null }),
+      ...buildBaseContext({ req, res, entity, workspace, workspaceError: null }),
       title: 'Backlink Analysis — Reverb',
       summary,
       typeFilter,

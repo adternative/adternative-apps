@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const { Op } = require('sequelize');
 const { authenticateToken } = require('../../middleware/auth');
-const { requireAppAccess, withAvailableApps } = require('../../middleware/paywall');
+const { requireAppAccess } = require('../../middleware/paywall');
 const { currentEntity } = require('../../middleware/entity');
 const { getAvailableApps } = require('../../utils/appLoader');
 const {
@@ -26,7 +26,7 @@ router.use(async (req, res, next) => {
 });
 
 // Home (Dashboard)
-router.get('/', withAvailableApps, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const entityId = req.currentEntity ? req.currentEntity.id : null;
     const [accounts, recentPosts, recentAds] = entityId ? await Promise.all([
@@ -40,7 +40,6 @@ router.get('/', withAvailableApps, async (req, res) => {
       user: req.user,
       currentEntity: req.currentEntity,
       appName: 'FLOW',
-      availableApps: req.availableApps || getAvailableApps(),
       stats: {
         accounts: accounts.length,
         posts: recentPosts.length,
@@ -56,7 +55,7 @@ router.get('/', withAvailableApps, async (req, res) => {
 });
 
 // Unified Create (Posts + Ads) - n8n-like minimal workflow
-router.get('/create', withAvailableApps, async (req, res) => {
+router.get('/create', async (req, res) => {
   try {
     const entityId = req.currentEntity ? req.currentEntity.id : null;
     const accounts = entityId
@@ -68,7 +67,6 @@ router.get('/create', withAvailableApps, async (req, res) => {
       user: req.user,
       currentEntity: req.currentEntity || null,
       appName: 'FLOW',
-      availableApps: req.availableApps || getAvailableApps(),
       accounts,
       noEntity: !entityId
     });
@@ -202,7 +200,7 @@ router.get('/api/calendar', async (req, res) => {
 });
 
 // List Posts
-router.get('/posts', withAvailableApps, async (req, res) => {
+router.get('/posts', async (req, res) => {
   try {
     if (!req.currentEntity) {
       return res.render(path.join(__dirname, 'views', 'posts.pug'), {
@@ -212,7 +210,6 @@ router.get('/posts', withAvailableApps, async (req, res) => {
         posts: [],
         accounts: [],
         appName: 'FLOW',
-        availableApps: req.availableApps || getAvailableApps(),
         noEntity: true
       });
     }
@@ -231,7 +228,6 @@ router.get('/posts', withAvailableApps, async (req, res) => {
       posts,
       accounts,
       appName: 'FLOW',
-      availableApps: req.availableApps || getAvailableApps(),
       noEntity: false
     });
   } catch (e) {
@@ -271,7 +267,7 @@ router.post('/api/posts', async (req, res) => {
 });
 
 // Post Detail with workflow
-router.get('/posts/:id', withAvailableApps, async (req, res) => {
+router.get('/posts/:id', async (req, res) => {
   try {
     const post = await Post.findOne({ where: { id: req.params.id, entity_id: req.currentEntity.id } });
     if (!post) return res.status(404).send('Post not found');
@@ -308,7 +304,7 @@ router.get('/posts/:id', withAvailableApps, async (req, res) => {
       nodes,
       edges,
       appName: 'FLOW',
-      availableApps: req.availableApps || getAvailableApps()
+      appName: 'FLOW'
     });
   } catch (e) {
     res.status(500).send(e.message);
@@ -316,7 +312,7 @@ router.get('/posts/:id', withAvailableApps, async (req, res) => {
 });
 
 // List Ads
-router.get('/ads', withAvailableApps, async (req, res) => {
+router.get('/ads', async (req, res) => {
   try {
     if (!req.currentEntity) {
       return res.render(path.join(__dirname, 'views', 'ads.pug'), {
@@ -326,7 +322,6 @@ router.get('/ads', withAvailableApps, async (req, res) => {
         ads: [],
         accounts: [],
         appName: 'FLOW',
-        availableApps: req.availableApps || getAvailableApps(),
         noEntity: true
       });
     }
@@ -345,7 +340,6 @@ router.get('/ads', withAvailableApps, async (req, res) => {
       ads,
       accounts,
       appName: 'FLOW',
-      availableApps: req.availableApps || getAvailableApps(),
       noEntity: false
     });
   } catch (e) {
@@ -383,7 +377,7 @@ router.post('/api/ads', async (req, res) => {
 });
 
 // Ad Detail with workflow
-router.get('/ads/:id', withAvailableApps, async (req, res) => {
+router.get('/ads/:id', async (req, res) => {
   try {
     const ad = await Ad.findOne({ where: { id: req.params.id, entity_id: req.currentEntity.id } });
     if (!ad) return res.status(404).send('Ad not found');
@@ -415,7 +409,7 @@ router.get('/ads/:id', withAvailableApps, async (req, res) => {
       nodes,
       edges,
       appName: 'FLOW',
-      availableApps: req.availableApps || getAvailableApps()
+      appName: 'FLOW'
     });
   } catch (e) {
     res.status(500).send(e.message);

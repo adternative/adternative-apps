@@ -62,10 +62,16 @@ block pageContent
           form(method="get" action="/core" class="grid grid-cols-1 sm:grid-cols-5 gap-3")
             div(class="sm:col-span-3")
               label(for="goalSelect" class="block text-sm font-medium text-gray-700 mb-1") Select a goal
-              select#goalSelect(name="goal" class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
-                - const goalOptions = ['awareness', 'leads', 'sales', 'retention'];
-                each g in goalOptions
-                  option(value=g selected=(hasSelectedGoal ? selectedGoal === g : false))= g.charAt(0).toUpperCase() + g.slice(1)
+              select#goalSelect(name="goal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
+                - const goalOptions = Array.isArray(goals) ? goals : [];
+                if goalOptions.length
+                  each goal in goalOptions
+                    - const goalKpi = goal && goal.objective && goal.objective.kpi ? goal.objective.kpi : '';
+                    - const goalName = goal && goal.name ? goal.name : '';
+                    - const isSelected = hasSelectedGoal && selectedGoal === goalKpi;
+                    option(value=goalKpi selected=isSelected)= goalName || goalKpi.charAt(0).toUpperCase() + goalKpi.slice(1)
+                else
+                  option(value="" disabled selected) No goals available for this entity
             div(class="sm:col-span-2 flex items-end")
               button(type="submit" class="inline-flex items-center w-full justify-center px-4 py-2 rounded-xl bg-purple-600 text-white font-medium hover:bg-purple-700 transition")
                 i(data-lucide="sparkles" class="w-4 h-4 mr-2")
@@ -89,29 +95,29 @@ block pageContent
               input#goalName(type="text" name="name" required placeholder="e.g. Grow MQLs" class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
             div
               label(for="goalPriority" class="block text-sm font-medium text-gray-700 mb-1") Priority
-              select#goalPriority(name="priority" class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+              select#goalPriority(name="priority" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
                 option(value="low") Low
                 option(value="medium" selected) Medium
                 option(value="high") High
             div
               label(for="goalDemographic" class="block text-sm font-medium text-gray-700 mb-1") Demographic
               if demographicOptions.length
-                select#goalDemographic(name="demographic_id" required class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+                select#goalDemographic(name="demographic_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
                   each d in demographicOptions
                     option(value=d.id)= d.name || ('Demographic ' + String(d.id).slice(0, 6))
               else
-                select#goalDemographic(disabled class="w-full rounded-xl border-gray-300 bg-gray-50 text-gray-400")
+                select#goalDemographic(disabled class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-400")
                   option No demographics found for this entity
             div
               label(for="goalKpi" class="block text-sm font-medium text-gray-700 mb-1") KPI
-              select#goalKpi(name="kpi" required class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+              select#goalKpi(name="kpi" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
                 option(value="awareness") Awareness
                 option(value="leads") Leads
                 option(value="sales") Sales
                 option(value="retention") Retention
             div
               label(for="goalMetric" class="block text-sm font-medium text-gray-700 mb-1") Metric
-              select#goalMetric(name="metric" required class="w-full rounded-xl border-gray-300 focus:ring-purple-500 focus:border-purple-500")
+              select#goalMetric(name="metric" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent")
                 option(value="reach") Reach
                 option(value="impressions") Impressions
                 option(value="ctr") CTR

@@ -25,6 +25,7 @@ try {
 const { computeChannelScores } = require('../utils/channelScoring');
 const { DEFAULT_CHANNELS } = require('../utils/mockData');
 const Demographic = require('../../../models/Demographic');
+const Goal = require('../../../models/Goal');
 
 const DASHBOARD_VIEW = path.join(__dirname, '..', 'views', 'index.pug');
 const RECOMMENDATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -130,7 +131,6 @@ const buildDashboardContext = ({
     updatedAt: recommendation.generatedAt || recommendation.updatedAt || new Date().toISOString(),
     refreshed,
     appName: 'CORE',
-    availableApps: req.availableApps || getAvailableApps(),
     coreEntity: entityProfile,
     benchmark: benchmark || null,
     socialSignals: socialSignals || null,
@@ -189,6 +189,22 @@ const renderDashboard = async (req, res) => {
       console.warn('[CORE] Failed to load demographics for widget:', err && err.message);
     }
     context.demographics = Array.isArray(demographics) ? demographics : [];
+
+    // Load goals for the current entity for the Match channels by goal widget
+    let goals = [];
+    try {
+      if (req.currentEntity && req.currentEntity.id) {
+        const goalRecords = await Goal.findAll({
+          attributes: ['id', 'name', 'objective'],
+          where: { entity_id: req.currentEntity.id },
+          order: [['createdAt', 'DESC']]
+        });
+        goals = Array.isArray(goalRecords) ? goalRecords.map(r => r.get({ plain: true })) : [];
+      }
+    } catch (err) {
+      console.warn('[CORE] Failed to load goals for widget:', err && err.message);
+    }
+    context.goals = Array.isArray(goals) ? goals : [];
 
     // If a goal is selected, recompute channel scores using the goal bias and default channels
     if (selectedGoal) {

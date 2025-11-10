@@ -18,7 +18,7 @@ const listTechnicalIssues = async (req, res, next) => {
 
     if (!workspace) {
       return res.render(TECHNICAL_VIEW, {
-        ...buildBaseContext({ req, entity, workspace, workspaceError }),
+        ...buildBaseContext({ req, res, entity, workspace, workspaceError }),
         title: 'Technical Crawler — Reverb',
         summary: null,
         severityFilter,
@@ -36,7 +36,7 @@ const listTechnicalIssues = async (req, res, next) => {
       : issues;
 
     res.render(TECHNICAL_VIEW, {
-      ...buildBaseContext({ req, entity, workspace, workspaceError: null }),
+      ...buildBaseContext({ req, res, entity, workspace, workspaceError: null }),
       title: 'Technical Crawler — Reverb',
       summary,
       severityFilter,

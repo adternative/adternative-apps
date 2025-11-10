@@ -108,38 +108,46 @@ const loadCurrentEntityQuietly = async (req) => {
   }
 };
 
-// Middleware: attach filtered availableApps for rendering navigation
-const withAvailableApps = async (req, res, next) => {
+// Sidebar helper: attach filtered availableApps to res.locals for navigation only
+const attachSidebarApps = async (req, res, next) => {
   try {
     const allApps = getAvailableApps();
 
-    // Admins see all apps
-    if (req.user && req.user.role === 'admin') {
-      req.availableApps = allApps;
+    // Always initialize availableApps to ensure it's defined in templates
+    res.locals.availableApps = [];
+
+    // Unauthenticated: no apps in sidebar
+    if (!req.user) {
       return next();
     }
 
-    // If not authenticated, expose no apps
-    if (!req.user) {
-      req.availableApps = [];
+    // Admins: all modules visible (check role string directly)
+    const userRole = req.user.role || (req.user.get && typeof req.user.get === 'function' ? req.user.get('role') : null) || null;
+    if (userRole === 'admin') {
+      res.locals.availableApps = allApps.map((app) => ({
+        ...app,
+        isAccessible: true
+      }));
+      // Debug: log admin access
+      console.log('[Paywall] Admin user detected, showing all apps:', res.locals.availableApps.length);
       return next();
     }
 
     // Load current entity quietly to determine entitlements
     const entity = await loadCurrentEntityQuietly(req);
     const subscriptionKeys = entity ? await loadEntitySubscriptionKeys(entity.id, req) : [];
-    req.entitySubscriptionKeys = subscriptionKeys;
+    res.locals.entitySubscriptionKeys = subscriptionKeys;
 
     const allowedKeys = mergeAllowedKeys(getEntityAllowedApps(entity), subscriptionKeys);
 
-  // If no explicit entitlements, only expose genuinely free modules
-  if (!entity || allowedKeys.length === 0) {
-    const freeApps = allApps
-      .filter((app) => DEFAULT_FREE_MODULES.has(resolveModuleKeyFromPath(app.path)))
-      .map((app) => ({ ...app, isAccessible: true }));
-    req.availableApps = freeApps;
-    return next();
-  }
+    // If no explicit entitlements, only expose genuinely free modules
+    if (!entity || allowedKeys.length === 0) {
+      const freeApps = allApps
+        .filter((app) => DEFAULT_FREE_MODULES.has(resolveModuleKeyFromPath(app.path)))
+        .map((app) => ({ ...app, isAccessible: true }));
+      res.locals.availableApps = freeApps;
+      return next();
+    }
 
     const filtered = allApps.filter((app) => {
       const keyFromPath = resolveModuleKeyFromPath(app.path);
@@ -150,12 +158,19 @@ const withAvailableApps = async (req, res, next) => {
       isAccessible: true
     }));
 
-    req.availableApps = filtered;
+    res.locals.availableApps = filtered;
     next();
   } catch (error) {
-    console.error('[Paywall] withAvailableApps error:', error);
-    // Fallback: expose nothing to avoid leaking premium links
-    req.availableApps = [];
+    console.error('[Paywall] attachSidebarApps error:', error);
+    console.error('[Paywall] attachSidebarApps error details:', {
+      user: req.user ? { id: req.user.id, role: req.user.role } : null,
+      path: req.path,
+      error: error.message
+    });
+    // Fallback: ensure availableApps is always defined
+    if (!res.locals.availableApps) {
+      res.locals.availableApps = [];
+    }
     next();
   }
 };
@@ -181,10 +196,19 @@ const requireAppAccess = (appKey) => {
       const allowedKeys = mergeAllowedKeys(getEntityAllowedApps(entity), subscriptionKeys);
 
       if (!allowedKeys.includes(requiredKey)) {
-        return res.status(402).json({
-          error: 'App access requires an active subscription for this entity',
-          code: 'APP_ACCESS_DENIED',
-          app: requiredKey,
+        const prefersJson = req.accepts(['html', 'json']) === 'json' || req.is('application/json');
+        if (prefersJson) {
+          return res.status(402).json({
+            error: 'App access requires an active subscription for this entity',
+            code: 'APP_ACCESS_DENIED',
+            app: requiredKey
+          });
+        }
+        return res.status(402).render('access_restricted', {
+          title: 'Access Restricted',
+          appKey: requiredKey,
+          subscribeUrl: `https://adternative.ro/app/${requiredKey}`,
+          user: req.user
         });
       }
 
@@ -200,7 +224,7 @@ const requireAppAccess = (appKey) => {
 };
 
 module.exports = {
-  withAvailableApps,
+  attachSidebarApps,
   requireAppAccess
 };
 

@@ -8,7 +8,7 @@ const { User, Entity } = require('../models');
 const { CoreDemographic } = require('../modules/core/models');
 const { authenticateToken, optionalAuth, requireRole } = require('../middleware/auth');
 const { getAvailableApps } = require('../utils/appLoader');
-const { withAvailableApps } = require('../middleware/paywall');
+const { uploadEntityLogo, getPublicUrl } = require('../config/storage');
 
 const AUTH_COOKIE_NAME = 'authToken';
 const AUTH_COOKIE_OPTIONS = {
@@ -19,12 +19,11 @@ const AUTH_COOKIE_OPTIONS = {
 };
 
 /* GET home page - requires authentication */
-router.get('/', authenticateToken, withAvailableApps, function(req, res, next) {
+router.get('/', authenticateToken, function(req, res, next) {
   // Render dashboard as the home page
   res.render('overview', { 
     title: 'Overview',
-    user: req.user,
-    availableApps: req.availableApps || getAvailableApps()
+    user: req.user
   });
 });
 
@@ -143,7 +142,6 @@ router.get('/admin', authenticateToken, requireRole(['admin']), function(req, re
   res.render('admin', { 
     title: 'Admin',
     user: req.user,
-    availableApps: req.availableApps || getAvailableApps(),
     settingsDefs
   });
 });
@@ -152,8 +150,7 @@ router.get('/admin', authenticateToken, requireRole(['admin']), function(req, re
 router.get('/login', (req, res) => {
   res.render('login', { 
     title: 'Login',
-    user: null,
-    availableApps: getAvailableApps()
+    user: null
   });
 });
 
@@ -161,8 +158,7 @@ router.get('/login', (req, res) => {
 router.get('/register', (req, res) => {
   res.render('register', { 
     title: 'Register',
-    user: null,
-    availableApps: getAvailableApps()
+    user: null
   });
 });
 
@@ -327,7 +323,7 @@ router.post('/entity', authenticateToken, async (req, res) => {
       return res.redirect('/login');
     }
 
-    const { name, industry, description, website } = req.body || {};
+    const { name, industry, description, website, photo, photoFilename } = req.body || {};
     let demographics = null;
     if (req.body && typeof req.body.demographics !== 'undefined') {
       if (typeof req.body.demographics === 'string' && req.body.demographics.trim()) {
@@ -383,6 +379,24 @@ router.post('/entity', authenticateToken, async (req, res) => {
 
     req.session.currentEntityId = entity.id;
 
+    // Handle photo upload to branding/logo category
+    if (photo) {
+      try {
+        const matches = photo.match(/^data:([^;]+);base64,(.*)$/);
+        const base64Payload = matches ? matches[2] : photo;
+        const buffer = Buffer.from(base64Payload, 'base64');
+        const originalName = typeof photoFilename === 'string' && photoFilename.trim() ? photoFilename.trim() : 'entity-logo.png';
+        const uploaded = await uploadEntityLogo({ buffer, originalName, entityId: entity.id, publicRead: true });
+        if (uploaded && (uploaded.url || uploaded.key)) {
+          const url = uploaded.url || getPublicUrl(uploaded.key);
+          await entity.update({ photo: url });
+        }
+      } catch (e) {
+        console.warn('Failed to upload entity logo:', e.message);
+        // Non-fatal for entity creation
+      }
+    }
+
     if (prefersJson) {
       return res.status(201).json({
         success: true,
@@ -390,6 +404,7 @@ router.post('/entity', authenticateToken, async (req, res) => {
           id: entity.id,
           name: entity.name,
           industry: entity.industry,
+          photo: entity.photo,
           description: entity.description,
           website: entity.website,
           demographics: demographics || null,

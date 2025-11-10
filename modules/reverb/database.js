@@ -6,7 +6,11 @@ const {
     PageAudit,
     TechnicalIssue,
     Backlink,
-    RankSnapshot
+    RankSnapshot,
+    Crawl,
+    Report,
+    Setting,
+    Segment
   },
   applyAssociations
 } = require('./models');
@@ -19,10 +23,14 @@ const reverbModels = [
   PageAudit,
   TechnicalIssue,
   Backlink,
-  RankSnapshot
+  RankSnapshot,
+  Crawl,
+  Report,
+  Setting,
+  Segment
 ];
 
-const syncReverbModels = async ({ alter = true } = {}) => {
+const syncReverbModels = async ({ alter = false } = {}) => {
   const options = alter ? { alter: true } : {};
   for (const model of reverbModels) {
     await model.sync(options);
@@ -33,7 +41,8 @@ let ensurePromise;
 
 const ensureReady = async () => {
   if (!ensurePromise) {
-    ensurePromise = syncReverbModels({ alter: true }).catch((error) => {
+    // Avoid altering existing tables; only create missing REVERB tables
+    ensurePromise = syncReverbModels({ alter: false }).catch((error) => {
       ensurePromise = null;
       console.error('[REVERB] ensureReady failed:', error.message);
       throw error;
@@ -50,7 +59,11 @@ module.exports = {
     PageAudit,
     TechnicalIssue,
     Backlink,
-    RankSnapshot
+    RankSnapshot,
+    Crawl,
+    Report,
+    Setting,
+    Segment
   },
   ensureReady,
   syncDatabase: syncReverbModels,

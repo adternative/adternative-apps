@@ -14,7 +14,7 @@ const Demographic = sequelize.define('Demographic', {
   entity_id: {
       type: DataTypes.UUID,
       allowNull: false,
-      unique: true
+      // multiple demographics per entity supported
     },
   age_range: {
     type: DataTypes.JSON,
@@ -30,18 +30,9 @@ const Demographic = sequelize.define('Demographic', {
     }
   },
   gender: {
-    type: DataTypes.JSON,
+    type: DataTypes.ENUM('male', 'female', 'non-binary','all'),
     allowNull: true,
-    defaultValue: null,
-    validate: {
-      genderShape(value) {
-        if (value == null) return;
-        if (typeof value !== 'object' || Array.isArray(value)) throw new Error('gender must be an object');
-        const { male, female } = value;
-        if (male != null && typeof male !== 'number') throw new Error('gender.male must be a number');
-        if (female != null && typeof female !== 'number') throw new Error('gender.female must be a number');
-      }
-    }
+    defaultValue: 'all'
   },
   location: {
     type: DataTypes.JSON,

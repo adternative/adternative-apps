@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const { authenticateToken } = require('../../middleware/auth');
-const { requireAppAccess, withAvailableApps } = require('../../middleware/paywall');
+const { requireAppAccess } = require('../../middleware/paywall');
 const { currentEntity } = require('../../middleware/entity');
 const { ensureReady } = require('./database');
 const dashboard = require('./controllers/dashboard');
@@ -20,9 +20,11 @@ router.use(async (req, res, next) => {
   next();
 });
 
-router.get('/', withAvailableApps, dashboard.renderDashboard);
+router.get('/', dashboard.renderDashboard);
 router.get('/summary', dashboard.getSummary);
+router.get('/api/summary', dashboard.getSummary);
 router.post('/refresh', dashboard.triggerRefresh);
+router.post('/api/refresh', dashboard.triggerRefresh);
 
 module.exports = (app) => {
   app.use('/core', router);

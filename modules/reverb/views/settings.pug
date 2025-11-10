@@ -1,0 +1,30 @@
+extends ./dashboard.pug
+
+block pageContent
+
+  div(class="bg-white shadow-sm rounded-3xl p-6")
+    h1.text-xl.font-semibold.text-gray-900 Settings
+    p.mt-1.text-sm.text-gray-600 Configure crawl limits, scheduling, robots.txt and integrations.
+
+    form.mt-6(method="post", action="/reverb/settings")
+      div(class="grid grid-cols-1 md:grid-cols-2 gap-6")
+        div(class="space-y-2")
+          label.block.text-sm.font-medium.text-gray-700(for="crawlLimit") Crawl Limit (pages)
+          input#crawlLimit(type="number", name="crawlLimit", value=(settings && settings.crawlLimit || 50) class="w-full rounded-xl border-gray-300")
+
+        div(class="space-y-2")
+          label.block.text-sm.font-medium.text-gray-700(for="scheduleCron") Crawl Schedule (cron)
+          input#scheduleCron(type="text", name="scheduleCron", value=(settings && settings.scheduleCron || '') placeholder="e.g. 0 2 * * *" class="w-full rounded-xl border-gray-300")
+
+        div(class="space-y-2")
+          label.block.text-sm.font-medium.text-gray-700(for="formsAuthSecret") Forms Auth Secret (for restricted actions)
+          input#formsAuthSecret(type="password", name="formsAuthSecret", value=(settings && settings.formsAuthSecret || '') class="w-full rounded-xl border-gray-300")
+
+        div(class="space-y-2 md:col-span-2")
+          label.block.text-sm.font-medium.text-gray-700(for="robotsTxt") Custom robots.txt
+          textarea#robotsTxt(name="robotsTxt" rows="6" class="w-full rounded-xl border-gray-300")= (settings && settings.robotsTxt) ? settings.robotsTxt : ''
+
+      div(class="mt-6")
+        button(type="submit" class="inline-flex items-center px-4 py-2 rounded-2xl bg-purple-600 text-white hover:bg-purple-700") Save Settings
+
+

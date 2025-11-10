@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { authenticateToken } = require('../../middleware/auth');
-const { requireAppAccess, withAvailableApps } = require('../../middleware/paywall');
+const { requireAppAccess } = require('../../middleware/paywall');
 const { currentEntity } = require('../../middleware/entity');
 const { getAvailableApps } = require('../../utils/appLoader');
 const {
@@ -24,7 +24,7 @@ router.use(async (req, res, next) => {
 });
 
 // Home (Dashboard)
-router.get('/', withAvailableApps, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const entityId = req.currentEntity ? req.currentEntity.id : null;
     const where = entityId ? { entity_id: entityId } : {};
@@ -44,7 +44,6 @@ router.get('/', withAvailableApps, async (req, res) => {
       user: req.user,
       currentEntity: req.currentEntity,
       appName: 'PULSE',
-      availableApps: req.availableApps || getAvailableApps(),
       stats: {
         audiences: audiences.length,
         subscribers: subscribersCount,
@@ -62,7 +61,7 @@ router.get('/', withAvailableApps, async (req, res) => {
 });
 
 // List Audiences
-router.get('/audiences', withAvailableApps, async (req, res) => {
+router.get('/audiences', async (req, res) => {
   try {
     if (!req.currentEntity) {
       return res.render(path.join(__dirname, 'views', 'audiences.pug'), {
@@ -71,7 +70,6 @@ router.get('/audiences', withAvailableApps, async (req, res) => {
         currentEntity: null,
         audiences: [],
         appName: 'PULSE',
-        availableApps: req.availableApps || getAvailableApps(),
         noEntity: true
       });
     }
@@ -87,7 +85,6 @@ router.get('/audiences', withAvailableApps, async (req, res) => {
       currentEntity: req.currentEntity,
       audiences,
       appName: 'PULSE',
-      availableApps: req.availableApps || getAvailableApps(),
       noEntity: false
     });
   } catch (e) {
@@ -96,7 +93,7 @@ router.get('/audiences', withAvailableApps, async (req, res) => {
 });
 
 // List Campaigns
-router.get('/campaigns', withAvailableApps, async (req, res) => {
+router.get('/campaigns', async (req, res) => {
   try {
     if (!req.currentEntity) {
       return res.render(path.join(__dirname, 'views', 'campaigns.pug'), {
@@ -107,7 +104,6 @@ router.get('/campaigns', withAvailableApps, async (req, res) => {
         audiences: [],
         templates: [],
         appName: 'PULSE',
-        availableApps: req.availableApps || getAvailableApps(),
         noEntity: true
       });
     }
@@ -130,7 +126,6 @@ router.get('/campaigns', withAvailableApps, async (req, res) => {
       audiences,
       templates,
       appName: 'PULSE',
-      availableApps: req.availableApps || getAvailableApps(),
       noEntity: false
     });
   } catch (e) {
@@ -139,7 +134,7 @@ router.get('/campaigns', withAvailableApps, async (req, res) => {
 });
 
 // List Templates
-router.get('/templates', withAvailableApps, async (req, res) => {
+router.get('/templates', async (req, res) => {
   try {
     if (!req.currentEntity) {
       return res.render(path.join(__dirname, 'views', 'templates.pug'), {
@@ -148,7 +143,6 @@ router.get('/templates', withAvailableApps, async (req, res) => {
         currentEntity: null,
         templates: [],
         appName: 'PULSE',
-        availableApps: req.availableApps || getAvailableApps(),
         noEntity: true
       });
     }
@@ -164,7 +158,6 @@ router.get('/templates', withAvailableApps, async (req, res) => {
       currentEntity: req.currentEntity,
       templates,
       appName: 'PULSE',
-      availableApps: req.availableApps || getAvailableApps(),
       noEntity: false
     });
   } catch (e) {
@@ -173,7 +166,7 @@ router.get('/templates', withAvailableApps, async (req, res) => {
 });
 
 // List Subscribers
-router.get('/subscribers', withAvailableApps, async (req, res) => {
+router.get('/subscribers', async (req, res) => {
   try {
     if (!req.currentEntity) {
       return res.render(path.join(__dirname, 'views', 'subscribers.pug'), {
@@ -183,7 +176,6 @@ router.get('/subscribers', withAvailableApps, async (req, res) => {
         subscribers: [],
         audiences: [],
         appName: 'PULSE',
-        availableApps: req.availableApps || getAvailableApps(),
         noEntity: true
       });
     }
@@ -207,7 +199,6 @@ router.get('/subscribers', withAvailableApps, async (req, res) => {
       audiences,
       selectedAudienceId: audience_id || '',
       appName: 'PULSE',
-      availableApps: req.availableApps || getAvailableApps(),
       noEntity: false
     });
   } catch (e) {

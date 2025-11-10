@@ -3,13 +3,12 @@ const router = express.Router();
 
 const { authenticateToken } = require('../middleware/auth');
 const { currentEntity } = require('../middleware/entity');
-const { withAvailableApps } = require('../middleware/paywall');
 const { getAvailableApps } = require('../utils/appLoader');
 
 const { User, Entity, EntityUsers } = require('../models');
 
-// Require auth and load available apps for sidebar
-router.use(authenticateToken, withAvailableApps);
+// Require auth
+router.use(authenticateToken);
 
 async function getMembership(entityId, userId) {
   return EntityUsers.findOne({ where: { entity_id: entityId, user_id: userId } });
@@ -28,7 +27,6 @@ router.get('/', currentEntity, async (req, res) => {
       return res.render('team', {
         title: 'Team',
         user: req.user,
-        availableApps: req.availableApps || getAvailableApps(),
         members: [],
         canManage: false
       });
@@ -70,7 +68,6 @@ router.get('/', currentEntity, async (req, res) => {
     return res.render('team', {
       title: 'Team',
       user: req.user,
-      availableApps: req.availableApps || getAvailableApps(),
       members,
       canManage
     });
@@ -80,7 +77,6 @@ router.get('/', currentEntity, async (req, res) => {
     return res.render('team', {
       title: 'Team',
       user: req.user,
-      availableApps: req.availableApps || getAvailableApps(),
       members: [],
       canManage: false,
       error: 'Failed to load team'

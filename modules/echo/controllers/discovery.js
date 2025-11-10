@@ -22,13 +22,8 @@ const defaultAudienceProfile = (_filters) => {
 const buildAudienceProfileFromDemographic = (demographic) => {
   if (!demographic || typeof demographic !== 'object') return null;
   const profile = {};
-  const gender = demographic.gender || {};
-  if (gender && (typeof gender.male === 'number' || typeof gender.female === 'number')) {
-    const male = typeof gender.male === 'number' ? gender.male : 50;
-    const female = typeof gender.female === 'number' ? gender.female : 50;
-    const sum = Math.max(male + female, 1);
-    profile.gender = { male: Math.round((male / sum) * 100), female: Math.round((female / sum) * 100) };
-  }
+  // Gender is ENUM on Demographic; do not convert to numeric distributions.
+  // Leave profile.gender unset to keep gender overlap neutral in scoring.
   const ageRange = demographic.age_range || demographic.ageRange;
   const buckets = ['18-24', '25-34', '35-44', '45-54', '55+'];
   if (ageRange && typeof ageRange.min === 'number' && typeof ageRange.max === 'number') {

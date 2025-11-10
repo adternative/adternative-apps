@@ -1,0 +1,19 @@
+mixin dataTable(headers, rows)
+  if headers && headers.length
+    div(class="mt-4 overflow-x-auto")
+      table(class="min-w-full divide-y divide-gray-200")
+        thead(class="bg-gray-50")
+          tr
+            each h in headers
+              th(scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider") #{h}
+        tbody(class="bg-white divide-y divide-gray-100")
+          if Array.isArray(rows) && rows.length
+            each r in rows
+              tr
+                each c in r
+                  td(class="px-4 py-3 whitespace-nowrap text-sm text-gray-700") #{c}
+          else
+            tr
+              td(class="px-4 py-3 text-sm text-gray-500" colspan=headers.length) No rows
+
+
